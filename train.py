@@ -45,9 +45,9 @@ test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels)) \
 # todo: make it parameter
 epochs = 20
 latent_dim = 2
-beta = 1e-4
+beta = 1e-3
 dataset = "mnist"
-lr = 1e-3
+lr = 1e-4
 
 optimizer = tf.keras.optimizers.Adam(lr)
 experiment_name = utils.get_experiment_name(f"vdb-{dataset}")
@@ -78,30 +78,25 @@ for epoch in range(1, epochs + 1):
         metrics = vdb.compute_apply_oneshot_gradients(model, train_x, optimizer)
         m.update_state(metrics)
 
-    print(
-        ":: Train >> Loss: %.4f | I(Z; Y) >= %.4f | I(X; Z) <= %.4f | acc = %.4f"
-        % tuple(m.result().numpy())
-    )
+    print(utils.format_metrics("Train", (m.result().numpy())))
 
     end_time = time.time()
 
-    if latent_dim == 2 and epoch % 5 == 0:
-        plot_helper.plot_2d_representation(
-            f"{artifact_dir}/figures/2d-latent-%04d-epoch.png" % epoch,
-            model,
-            (selected_images, selected_labels),
-            title=f"Epoch %04d" % epoch
-        )
+    # todo: write figure to tensorboard
+    # if latent_dim == 2 and epoch % 5 == 0:
+    #     plot_helper.plot_2d_representation(
+    #         f"{artifact_dir}/figures/2d-latent-%04d-epoch.png" % epoch,
+    #         model,
+    #         (selected_images, selected_labels),
+    #         title=f"Epoch %04d" % epoch
+    #     )
 
     m = tf.keras.metrics.MeanTensor("test_metrics")
     for test_x in test_dataset:
         metrics = vdb.compute_loss(model, *test_x)
         m.update_state(metrics)
 
-    print(
-        ":: Test  >> Loss: %.4f | I(Z; Y) >= %.4f | I(X; Z) <= %.4f | acc = %.4f"
-        % tuple(m.result().numpy())
-    )
+    print(utils.format_metrics("Test", (m.result().numpy())))
 
     print(f"--- Time elapse for current epoch {end_time - start_time}")
 
