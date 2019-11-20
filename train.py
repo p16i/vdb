@@ -1,28 +1,30 @@
-import tensorflow as tf
-
 import time
+import os
+
 import numpy as np
-import matplotlib.pyplot as plt
-
-import vdb
-
+import tensorflow as tf
 import tensorflow_probability as tfp
 
+# ours
+import vdb
 import plot_helper
+import utils
 
-# Data Preparation
+# Parameter Setting
+ARTIFACT_DIR = "./artifacts"
 TRAIN_BUF = 60000
 BATCH_SIZE = 100
-
 TEST_BUF = 10000
 
+
+# todo: create data module for this
 (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.mnist.load_data()
 
-train_images = train_images.reshape(train_images.shape[0], 28, 28, 1).astype('float32')
-test_images = test_images.reshape(test_images.shape[0], 28, 28, 1).astype('float32')
+train_images = train_images.reshape(train_images.shape[0], 28, 28, 1).astype("float32")
+test_images = test_images.reshape(test_images.shape[0], 28, 28, 1).astype("float32")
 
-train_labels = train_labels.astype('int32')
-test_labels = test_labels.astype('int32')
+train_labels = train_labels.astype("int32")
+test_labels = test_labels.astype("int32")
 
 ## Normalizing the images to the range of [0., 1.]
 train_images /= 255.
@@ -39,60 +41,68 @@ train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_labels))
 
 test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels)) \
   .shuffle(TEST_BUF).batch(BATCH_SIZE)
-
-@tf.function
-def compute_loss(model, x, y):
-    q_zgx = model.encode(x)
-    
-    z = q_zgx.sample()
-    logits = model.decode(z)
-
-    class_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-      y, logits
-    ) / tf.math.log(2.)
-
-    info_loss = tf.reduce_sum(
-        tf.reduce_mean(
-          tfp.distributions.kl_divergence(q_zgx, model.prior), 0
-        )
-    ) / tf.math.log(2.)
-
-    return class_loss + model.beta*info_loss
-
-@tf.function
-def compute_apply_gradients(model, x, optimizer):
-  with tf.GradientTape() as tape:
-    x, y = x
-    loss = compute_loss(model, x, y)
-  gradients = tape.gradient(loss, model.trainable_variables)
-  optimizer.apply_gradients(zip(gradients, model.trainable_variables))
  
-
-optimizer = tf.keras.optimizers.Adam(1e-4)
-
-epochs = 5
+# todo: make it parameter
+epochs = 20
 latent_dim = 2
+beta = 1e-4
+dataset = "mnist"
+lr = 1e-3
 
-model = vdb.VDB(train_images.shape[1:], latent_dim, beta=1e-2)
+optimizer = tf.keras.optimizers.Adam(lr)
+experiment_name = utils.get_experiment_name(f"vdb-{dataset}")
 
-for epoch in range(1, epochs + 1):
-  start_time = time.time()
-  for train_x in train_dataset:
-    compute_apply_gradients(model, train_x, optimizer)
-  end_time = time.time()
+print(f"Experiment name: {experiment_name}")
+artifact_dir = f"{ARTIFACT_DIR}/{experiment_name}"
 
-  if epoch % 1 == 0:
-    loss = tf.keras.metrics.Mean()
-    for test_x in test_dataset:
-      loss(compute_loss(model, *test_x))
-    loss = loss.result()
-    print('Epoch: {}, Test set loss: {}, '
-          'time elapse for current epoch {}'.format(epoch, loss, end_time - start_time))
+os.makedirs(f"{artifact_dir}/figures")
 
+train_log_dir = f"{artifact_dir}/logs/train"
+test_log_dir = f"{artifact_dir}/logs/test"
+
+train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+test_summary_writer = tf.summary.create_file_writer(test_log_dir)
+
+model = vdb.VDB(train_images.shape[1:], latent_dim, beta=beta)
+
+# for 2d plot
 indices = np.random.choice(test_labels.shape[0], 1000, replace=False)
 selected_labels = test_labels[indices]
 selected_images = test_images[indices, :]
 
-plot_helper.plot_2d_representation(
-  "./figures/2d-latent.png",
-  model, (selected_images, selected_labels))
+for epoch in range(1, epochs + 1):
+    start_time = time.time()
+    print(f"Epoch {epoch}")
+    m = tf.keras.metrics.MeanTensor("train_metrics")
+    for train_x in train_dataset:
+        metrics = vdb.compute_apply_oneshot_gradients(model, train_x, optimizer)
+        m.update_state(metrics)
+
+    print(
+        ":: Train >> Loss: %.4f | I(Z; Y) >= %.4f | I(X; Z) <= %.4f | acc = %.4f"
+        % tuple(m.result().numpy())
+    )
+
+    end_time = time.time()
+
+    if latent_dim == 2 and epoch % 5 == 0:
+        plot_helper.plot_2d_representation(
+            f"{artifact_dir}/figures/2d-latent-%04d-epoch.png" % epoch,
+            model,
+            (selected_images, selected_labels),
+            title=f"Epoch %04d" % epoch
+        )
+
+    m = tf.keras.metrics.MeanTensor("test_metrics")
+    for test_x in test_dataset:
+        metrics = vdb.compute_loss(model, *test_x)
+        m.update_state(metrics)
+
+    print(
+        ":: Test  >> Loss: %.4f | I(Z; Y) >= %.4f | I(X; Z) <= %.4f | acc = %.4f"
+        % tuple(m.result().numpy())
+    )
+
+    print(f"--- Time elapse for current epoch {end_time - start_time}")
+
+print(f"Please see artifact at: {artifact_dir}")

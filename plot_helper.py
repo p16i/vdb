@@ -39,7 +39,7 @@ def plot_ellipse(ax, mu, cov, n_std=1, facecolor="none", edgecolor="red", alpha=
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
 
-def plot_2d_representation(figname, model, data, cm=plt.get_cmap('gist_rainbow')):
+def plot_2d_representation(figname, model, data, title="", cm=plt.get_cmap('gist_rainbow')):
     images, labels = data
     q_zgx = model.encode(images)
 
@@ -48,7 +48,9 @@ def plot_2d_representation(figname, model, data, cm=plt.get_cmap('gist_rainbow')
 
     plt.figure()
     ax = plt.gca()
-    plt.title(r"$\beta= %f$" % (model.beta))
+
+    if title:
+        plt.title(title)
 
     for i in range(10):
         ix = np.argwhere(labels == i)
