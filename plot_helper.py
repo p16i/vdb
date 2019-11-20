@@ -1,5 +1,6 @@
-import numpy as np
+import io
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 from matplotlib.patches import Ellipse
@@ -39,7 +40,7 @@ def plot_ellipse(ax, mu, cov, n_std=1, facecolor="none", edgecolor="red", alpha=
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
 
-def plot_2d_representation(figname, model, data, title="", cm=plt.get_cmap('gist_rainbow')):
+def plot_2d_representation(model, data, title="", cm=plt.get_cmap('gist_rainbow')):
     images, labels = data
     q_zgx = model.encode(images)
 
@@ -61,5 +62,9 @@ def plot_2d_representation(figname, model, data, title="", cm=plt.get_cmap('gist
             ij = ix[j]
             plot_ellipse(ax, mu[ij,:], cov[ij, :, :], edgecolor=cm(i/10))
 
-    plt.tight_layout()
-    plt.savefig(figname)
+    buf = io.BytesIO()
+
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+
+    return buf

@@ -9,6 +9,7 @@ import tensorflow_probability as tfp
 import vdb
 import plot_helper
 import utils
+import tfutils
 
 # Parameter Setting
 ARTIFACT_DIR = "./artifacts"
@@ -43,7 +44,7 @@ test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_labels)) \
   .shuffle(TEST_BUF).batch(BATCH_SIZE)
  
 # todo: make it parameter
-epochs = 20
+epochs = 10
 latent_dim = 2
 beta = 1e-3
 dataset = "mnist"
@@ -65,10 +66,12 @@ test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
 model = vdb.VDB(train_images.shape[1:], latent_dim, beta=beta)
 
-# for 2d plot
+# todo: for 2d plot
 indices = np.random.choice(test_labels.shape[0], 1000, replace=False)
 selected_labels = test_labels[indices]
 selected_images = test_images[indices, :]
+
+metric_labels = ["loss", "I_YZ", "I_XZ", "accuracy"]
 
 for epoch in range(1, epochs + 1):
     start_time = time.time()
@@ -78,25 +81,35 @@ for epoch in range(1, epochs + 1):
         metrics = vdb.compute_apply_oneshot_gradients(model, train_x, optimizer)
         m.update_state(metrics)
 
-    print(utils.format_metrics("Train", (m.result().numpy())))
+    m = m.result().numpy()
+    print(utils.format_metrics("Train", m))
+
+    tfutils.log_metrics(train_summary_writer, metric_labels, m, epoch)
 
     end_time = time.time()
 
-    # todo: write figure to tensorboard
-    # if latent_dim == 2 and epoch % 5 == 0:
-    #     plot_helper.plot_2d_representation(
-    #         f"{artifact_dir}/figures/2d-latent-%04d-epoch.png" % epoch,
-    #         model,
-    #         (selected_images, selected_labels),
-    #         title=f"Epoch %04d" % epoch
-    #     )
+    if latent_dim == 2:
+        img_buff = plot_helper.plot_2d_representation(
+            model,
+            (selected_images, selected_labels),
+        )
+
+        tfutils.summary_image(
+            test_summary_writer,
+            img_buff,
+            "latent-representation",
+            epochs
+        )
 
     m = tf.keras.metrics.MeanTensor("test_metrics")
     for test_x in test_dataset:
         metrics = vdb.compute_loss(model, *test_x)
         m.update_state(metrics)
 
-    print(utils.format_metrics("Test", (m.result().numpy())))
+    m = m.result().numpy()
+    print(utils.format_metrics("Test", m))
+
+    tfutils.log_metrics(test_summary_writer, metric_labels, m.result().numpy(), epoch)
 
     print(f"--- Time elapse for current epoch {end_time - start_time}")
 
