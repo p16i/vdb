@@ -4,17 +4,19 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 class VDB(tf.keras.Model):
-  def __init__(self, input_shape, latent_dim, beta=1e-3, M=1):
+  def __init__(self, architecture, input_shape, beta=1e-3, M=1):
     super(VDB, self).__init__()
+
+    latent_dim = architecture["z"]
     self.latent_dim = latent_dim
 
     self.encoder = tf.keras.Sequential(
-      [
-          tf.keras.layers.Flatten(input_shape=input_shape),
-          tf.keras.layers.Dense(units=1024, activation=tf.nn.relu),
-          tf.keras.layers.Dense(units=1024, activation=tf.nn.relu),
-          tf.keras.layers.Dense(latent_dim + int(latent_dim * (latent_dim + 1) / 2)),
-      ]
+        [
+            tf.keras.layers.Flatten(input_shape=input_shape),
+            tf.keras.layers.Dense(units=architecture["e1"], activation=tf.nn.relu),
+            tf.keras.layers.Dense(units=architecture["e2"], activation=tf.nn.relu),
+            tf.keras.layers.Dense(latent_dim + int(latent_dim * (latent_dim + 1) / 2)),
+        ]
     )
 
     self.decoder = tf.keras.Sequential(
