@@ -20,17 +20,31 @@ def get_optimizer(strategy, lr):
         ), slugs[0], utils.parse_arch(slugs[1])
 
 @tf.function
-def compute_loss(model, x, y):
+def compute_loss(model, x, y, M=1):
     q_zgx = model.encode(x)
     
-    z = q_zgx.sample()
-    logits = model.decode(z)
-    pred = tf.dtypes.cast(tf.math.argmax(logits, axis=1), tf.int32)
+    # shape: (M, batch_size, 10)
+    z = q_zgx.sample(model.M)
 
-    class_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=y,
-        logits=logits
-    )) / math.log(2.)
+    # shape: (M, batch_size, 10)
+    logits = model.decode(z)
+
+    # shape: (batch_size, 10)
+    one_hot = tf.one_hot(y, depth=10)
+
+    # shape: (M, batch_size, 10)
+    sm = tf.nn.softmax(logits)
+
+    # shape: (batch_size, 10)
+    mean_sm = tf.reduce_mean(sm, 0)
+    pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
+
+    class_loss = tf.reduce_mean( # average across all samples in batch
+       -tf.reduce_sum(
+           one_hot * tf.math.log(mean_sm),
+           1 # sum over all classes
+       )
+    ) / math.log(2.)
 
     info_loss = tf.reduce_mean(
         tfp.distributions.kl_divergence(q_zgx, model.prior)
