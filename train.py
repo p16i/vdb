@@ -100,7 +100,8 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
             sm = tf.nn.softmax(logits)
             tt = tf.reduce_mean(sm)
             if np.isnan(tt.numpy()):
-                print(sum_zero)
+                print(tt)
+                print(sm.numpy())
                 raise SystemExit("found zeror")
 
             metrics = apply_gradient_func(
