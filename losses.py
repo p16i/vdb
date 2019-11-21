@@ -8,7 +8,7 @@ import utils
 def get_optimizer(strategy, lr):
     if strategy == "oneshot":
         print("using oneshot strategy")
-        return (tf.keras.optimizers.Adam(lr)), strategy, {}
+        return [tf.keras.optimizers.Adam(lr)], strategy, {}
     elif strategy[:3] == "seq":
         slugs = strategy.split("/")
         print(f"using {slugs[0]} strategy with {slugs[1]}")
