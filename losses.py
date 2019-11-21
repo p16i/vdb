@@ -27,26 +27,27 @@ def compute_loss(model, x, y, M=1):
     z = q_zgx.sample(model.M)
 
     # shape: (M, batch_size, 10)
-    logits = model.decode(z)
+    logits = tf.dtypes.cast(model.decode(z), tf.float64)
 
     # shape: (batch_size, 10)
-    one_hot = tf.one_hot(y, depth=10)
+    one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
 
     # shape: (M, batch_size, 10)
-    sm = tf.nn.softmax(
-        logits 
-    )
+    sm = tf.nn.softmax(logits - tf.reduce_max(logits, 2, keepdims=True))
 
     # shape: (batch_size, 10)
     mean_sm = tf.reduce_mean(sm, 0)
     pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
 
-    class_loss = tf.reduce_mean( # average across all samples in batch
+    class_loss_float64 = tf.reduce_mean( # average across all samples in batch
         - tf.reduce_sum(
-            tf.math.log(mean_sm) * one_hot,
+            # tf.multiply(tf.reduce_mean(tf.nn.log_softmax(logits), 0), one_hot),
+            tf.multiply(tf.math.log(mean_sm), one_hot),
             1 # sum over all classes
         )
     ) / math.log(2.)
+
+    class_loss = tf.dtypes.cast(class_loss_float64, dtype=tf.float32)
 
     info_loss = tf.reduce_mean(
         tfp.distributions.kl_divergence(q_zgx, model.prior)
