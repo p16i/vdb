@@ -33,7 +33,7 @@ def compute_loss(model, x, y, M=1):
     one_hot = tf.one_hot(y, depth=10)
 
     # shape: (M, batch_size, 10)
-    sm = tf.nn.softmax(logits)
+    sm = tf.nn.softmax(logits - tf.reduce_max(logits, 2, keepdims=True))
 
     # shape: (batch_size, 10)
     mean_sm = tf.reduce_mean(sm, 0)
