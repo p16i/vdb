@@ -98,8 +98,8 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
 
             # shape: (M, batch_size, 10)
             sm = tf.nn.softmax(logits)
-            sum_zero = tf.reduce_sum(tf.where(sm == 0, 1, 0))
-            if sum_zero.numpy() > 0:
+            tt = tf.reduce_mean(sm)
+            if np.isnan(tt.numpy()):
                 print(sum_zero)
                 raise SystemExit("found zeror")
 
