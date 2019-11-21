@@ -21,6 +21,7 @@ import numpy as np
 from docopt import docopt
 
 import tensorflow as tf
+import tensorflow_probability as tfp
 
 # our core modules
 import vdb
@@ -103,6 +104,16 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
                 print(tt)
                 print(sm.numpy())
                 raise SystemExit("found zeror")
+
+
+            info_loss = tf.reduce_mean(
+                tfp.distributions.kl_divergence(q_zgx, model.prior)
+            ) 
+            if np.isnan(info_loss.numpy()):
+                print('infoloss is nan')
+                raise SystemExit("found zeror")
+
+
 
             metrics = apply_gradient_func(
                 model, batch, optimizers, epoch, opt_params
