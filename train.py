@@ -76,7 +76,8 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
     architecture = utils.parse_arch(architecture)
     model = vdb.VDB(architecture, datasets.input_dims[dataset], beta=beta, M=M)
 
-    metric_labels = ["loss", "I_YZ", "I_XZ", "accuracy"]
+    metric_labels = ["loss", "I_YZ", "I_XZ"]
+    acc_labels = ["accuracy_L1", "accuracy_L12"]
 
     for epoch in range(1, epochs + 1):
         start_time = time.time()
@@ -84,6 +85,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         print(f"Epoch {epoch}")
 
         m = tf.keras.metrics.MeanTensor("train_metrics")
+        am = tf.keras.metrics.MeanTensor("train_acc_metrics")
         for i, batch in enumerate(train_dataset):
 
             metrics = apply_gradient_func(
@@ -91,10 +93,20 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
             )
             m.update_state(metrics)
 
+            x, y = batch
+            am.update_state(
+                [
+                    losses.compute_acc(model, x, y, 1),
+                    losses.compute_acc(model, x, y, 12)
+                ]
+            )
+
         m = m.result().numpy()
-        print(utils.format_metrics("Train", m))
+        am = am.result().numpy()
+        print(utils.format_metrics("Train", m, am))
         tfutils.log_metrics(train_summary_writer, metric_labels, m, epoch)
-        train_metrics = m
+        tfutils.log_metrics(train_summary_writer, acc_labels, am, epoch)
+        train_metrics = m.astype(float).tolist() + am.astype(float).tolist()
 
         end_time = time.time()
 
@@ -113,20 +125,26 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
             )
 
         m = tf.keras.metrics.MeanTensor("test_metrics")
+        am = tf.keras.metrics.MeanTensor("test_acc_metrics")
         for batch in test_dataset:
             metrics = losses.compute_loss(model, *batch)
             m.update_state(metrics)
+            x, y = batch
+            am.update_state(
+                [
+                    losses.compute_acc(model, x, y, 1),
+                    losses.compute_acc(model, x, y, 12)
+                ]
+            )
 
         m = m.result().numpy()
-        print(utils.format_metrics("Test", m))
+        am = am.result().numpy()
+        print(utils.format_metrics("Test", m, am))
         tfutils.log_metrics(test_summary_writer, metric_labels, m, epoch)
-        test_metrics = m
+        tfutils.log_metrics(test_summary_writer, acc_labels, am, epoch)
+        test_metrics = m.astype(float).tolist() + am.astype(float).tolist()
 
         print(f"--- Time elapse for current epoch {end_time - start_time}")
-
-    print(train_metrics.astype(float))
-    print(dict(zip(metric_labels, list(train_metrics.astype(float)))))
-
 
     summary = dict(
         dataset=dataset,
@@ -137,8 +155,8 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         M=M,
         lr=lr,
         metrics=dict(
-            train=dict(zip(metric_labels, train_metrics.astype(float).tolist())),
-            test=dict(zip(metric_labels, test_metrics.astype(float).tolist())),
+            train=dict(zip(metric_labels + acc_labels, train_metrics)),
+            test=dict(zip(metric_labels + acc_labels, test_metrics)),
         )
     )
 

@@ -20,24 +20,20 @@ def get_optimizer(strategy, lr):
         ), slugs[0], utils.parse_arch(slugs[1])
 
 @tf.function
+def compute_acc(model, x, y, L):
+    _, mean_sm = model(x, L=L)
+    pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
+    acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
+
+    return acc
+
+@tf.function
 def compute_loss(model, x, y, M=1):
-    q_zgx = model.encode(x)
-    
-    # shape: (M, batch_size, 10)
-    z = q_zgx.sample(model.M)
-
-    # shape: (M, batch_size, 10)
-    logits = tf.dtypes.cast(model.decode(z), tf.float64)
-
     # shape: (batch_size, 10)
     one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
 
-    # shape: (M, batch_size, 10)
-    sm = tf.nn.softmax(logits - tf.reduce_max(logits, 2, keepdims=True))
-
     # shape: (batch_size, 10)
-    mean_sm = tf.reduce_mean(sm, 0)
-    pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
+    q_zgx, mean_sm = model(x, L=M)
 
     class_loss_float64 = tf.reduce_mean( # average across all samples in batch
         - tf.reduce_sum(
@@ -56,9 +52,7 @@ def compute_loss(model, x, y, M=1):
     IZY_bound = math.log(10, 2) - class_loss
     IZX_bound = info_loss
 
-    acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
-
-    return class_loss + model.beta*info_loss, IZY_bound, IZX_bound, acc
+    return class_loss + model.beta*info_loss, IZY_bound, IZX_bound
 
 @tf.function
 def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params):

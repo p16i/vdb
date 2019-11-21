@@ -7,9 +7,9 @@ def get_experiment_name(prefix=""):
     else:
         return timestamp
 
-def format_metrics(prefix, metrics):
-    return ":: %5s  >> Loss: %.4f | I(Z; Y): %.4f | I(X; Z): %.4f | acc: %.4f" \
-        % (prefix, *metrics)
+def format_metrics(prefix, metrics, acc):
+    return ":: %5s  >> Loss: %.4f | I(Z; Y): %.4f | I(X; Z): %.4f | acc(L1): %.4f | acc(L12): %.4f" \
+        % (prefix, *metrics, *acc)
 
 def to_number(a):
     if "." in a:
