@@ -33,7 +33,7 @@ import utils
 import tfutils
 
 ARTIFACT_DIR = "./artifacts"
-BATCH_SIZE = 1000 # todo: keep it fixed for now
+BATCH_SIZE = 100 # todo: keep it fixed for now
 
 def train(model, dataset, epochs, beta, M, lr, strategy):
     model_conf = model
@@ -84,21 +84,24 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
 
         m = tf.keras.metrics.MeanTensor("train_metrics")
         for batch in train_dataset:
-            # x, y = batch
-            # q_zgx = model.encode(x)
+            x, y = batch
+            q_zgx = model.encode(x)
     
-            # # shape: (M, batch_size, 10)
-            # z = q_zgx.sample(model.M)
+            # shape: (M, batch_size, 10)
+            z = q_zgx.sample(model.M)
 
-            # # shape: (M, batch_size, 10)
-            # logits = model.decode(z)
+            # shape: (M, batch_size, 10)
+            logits = model.decode(z)
 
-            # # shape: (batch_size, 10)
-            # one_hot = tf.one_hot(y, depth=10)
+            # shape: (batch_size, 10)
+            one_hot = tf.one_hot(y, depth=10)
 
-            # # shape: (M, batch_size, 10)
-            # sm = tf.nn.softmax(logits)
-            # print(tf.reduce_sum(sm, [2, 0, 1]))
+            # shape: (M, batch_size, 10)
+            sm = tf.nn.softmax(logits)
+            sum_zero = tf.reduce_sum(tf.where(sm == 0, 1, 0))
+            if sum_zero.numpy() > 0:
+                print(sum_zero)
+                raise SystemExit("found zeror")
 
             metrics = apply_gradient_func(
                 model, batch, optimizers, epoch, opt_params
