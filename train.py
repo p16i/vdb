@@ -84,7 +84,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         print(f"Epoch {epoch}")
 
         m = tf.keras.metrics.MeanTensor("train_metrics")
-        for batch in train_dataset:
+        for i, batch in enumerate(train_dataset):
             x, y = batch
             q_zgx = model.encode(x)
     
@@ -93,27 +93,21 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
 
             # shape: (M, batch_size, 10)
             logits = model.decode(z)
+            max_logits = tf.reduce_max(logits, 2).numpy()[:10, :]
+            min_logits = tf.reduce_min(logits, 2).numpy()[:10, :]
 
-            # shape: (batch_size, 10)
+            if i % 100 == 0 and False:
+                print(max_logits, min_logits)
+
+            # # shape: (batch_size, 10)
             one_hot = tf.one_hot(y, depth=10)
 
-            # shape: (M, batch_size, 10)
+            # # shape: (M, batch_size, 10)
             sm = tf.nn.softmax(logits)
             tt = tf.reduce_mean(sm)
             if np.isnan(tt.numpy()):
-                print(tt)
-                print(sm.numpy())
+                print(max_logits, min_logits)
                 raise SystemExit("found zeror")
-
-
-            info_loss = tf.reduce_mean(
-                tfp.distributions.kl_divergence(q_zgx, model.prior)
-            ) 
-            if np.isnan(info_loss.numpy()):
-                print('infoloss is nan')
-                raise SystemExit("found zeror")
-
-
 
             metrics = apply_gradient_func(
                 model, batch, optimizers, epoch, opt_params
