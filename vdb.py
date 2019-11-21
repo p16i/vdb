@@ -1,5 +1,3 @@
-import math
-
 import tensorflow as tf
 import tensorflow_probability as tfp
 
@@ -60,39 +58,3 @@ class VDB(tf.keras.Model):
       return probs
 
     return logits
-
-@tf.function
-def compute_loss(model, x, y):
-    q_zgx = model.encode(x)
-    
-    z = q_zgx.sample()
-    logits = model.decode(z)
-    pred = tf.dtypes.cast(tf.math.argmax(logits, axis=1), tf.int32)
-
-    class_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(
-        labels=y,
-        logits=logits
-    )) / math.log(2.)
-
-    info_loss = tf.reduce_mean(
-        tfp.distributions.kl_divergence(q_zgx, model.prior)
-    ) / math.log(2.)
-
-    IZY_bound = math.log(10, 2) - class_loss
-    IZX_bound = info_loss
-
-    acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
-
-    return class_loss + model.beta*info_loss, IZY_bound, IZX_bound, acc
-
-@tf.function
-def compute_apply_oneshot_gradients(model, x, optimizer):
-    with tf.GradientTape() as tape:
-        x, y = x
-        metrics = compute_loss(model, x, y)
-        loss = metrics[0]
-
-    gradients = tape.gradient(loss, model.trainable_variables)
-    optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-
-    return metrics

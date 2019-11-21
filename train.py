@@ -1,34 +1,40 @@
 """
-Usage: train.py --epoch=<epoch> --dataset=<dataset> --beta=<beta> -M=<M> --lr=<lr> <model>
+Usage:
+train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr>] --strategy=<strategy> --dataset=<dataset> <model>
 
 Options:
   -h --help                 Show this screen.
-  --epoch=<epoch>           Number of epochs [default: 10]
-  --dataset=<dataset>       Dataset for training [default: mnist]
+  --dataset=<dataset>       One from {mnist, fashion_mnist, cifar10} [default: mnist]
   --beta=<beta>             Value of β [default: 0.001]
-  --lr=<lr>                 Learning rate [default: 0.0001]
   -M=<M>                    Value of M [default: 1]
+  --lr=<lr>                 Learning rate [default: 0.001]
+  --epoch=<epoch>           Number of epochs [default: 10]
+  --strategy=<strategy>     Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
+                            "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
 """
 
 import time
 import os
 
 import numpy as np
-import tensorflow as tf
-import tensorflow_probability as tfp
 from docopt import docopt
 
-# ours
+import tensorflow as tf
+
+# our core modules
 import vdb
+import datasets
+import losses
+
+# our helper modules
 import plot_helper
 import utils
 import tfutils
-import datasets
 
 ARTIFACT_DIR = "./artifacts"
-BATCH_SIZE = 100
+BATCH_SIZE = 100 # todo: keep it fixed for now
 
-def train(model, dataset, epochs, beta, M, lr):
+def train(model, dataset, epochs, beta, M, lr, strategy):
 
     # todo: create data module for this
     train_set, test_set, small_set = datasets.get_dataset(dataset)
@@ -42,9 +48,12 @@ def train(model, dataset, epochs, beta, M, lr):
     .shuffle(TEST_BUF).batch(BATCH_SIZE)
     
     print(f"Training with {model} on {dataset} for {epochs} epochs (lr={lr})")
-    print(f"Params: beta={beta} M={M} lr={lr}")
+    print(f"Params: beta={beta} M={M} lr={lr} strategy={strategy}")
 
-    optimizer = tf.keras.optimizers.Adam(lr)
+    optimizers, strategy_name, opt_params = losses.get_optimizer(strategy, lr)
+
+    apply_gradient_func = getattr(losses, f"compute_apply_{strategy_name}_gradients")
+
     experiment_name = utils.get_experiment_name(f"vdb-{dataset}")
 
     print(f"Experiment name: {experiment_name}")
@@ -73,7 +82,9 @@ def train(model, dataset, epochs, beta, M, lr):
 
         m = tf.keras.metrics.MeanTensor("train_metrics")
         for train_x in train_dataset:
-            metrics = vdb.compute_apply_oneshot_gradients(model, train_x, optimizer)
+            metrics = apply_gradient_func(
+                model, train_x, optimizers, epoch, opt_params
+            )
             m.update_state(metrics)
 
         m = m.result().numpy()
@@ -83,7 +94,11 @@ def train(model, dataset, epochs, beta, M, lr):
         end_time = time.time()
 
         if model.latent_dim == 2:
-            img_buff = plot_helper.plot_2d_representation(model, small_set)
+            img_buff = plot_helper.plot_2d_representation(
+                model,
+                small_set,
+                title="Strategy=%s | Beta=%f" % (strategy, beta)
+            )
 
             tfutils.summary_image(
                 test_summary_writer,
@@ -94,7 +109,7 @@ def train(model, dataset, epochs, beta, M, lr):
 
         m = tf.keras.metrics.MeanTensor("test_metrics")
         for test_x in test_dataset:
-            metrics = vdb.compute_loss(model, *test_x)
+            metrics = losses.compute_loss(model, *test_x)
             m.update_state(metrics)
 
         m = m.result().numpy()
@@ -110,10 +125,11 @@ if __name__ == "__main__":
 
     # todo: write a function to do magic type cast
     model = arguments["<model>"]
+    strategy = arguments["--strategy"]
     beta = float(arguments["--beta"])
     dataset = arguments["--dataset"]
     epoch = int(arguments["--epoch"])
     M = int(arguments["-M"])
     lr = float(arguments["--lr"])
 
-    train(model, dataset, epoch, beta, M, lr)
+    train(model, dataset, epoch, beta, M, lr, strategy)

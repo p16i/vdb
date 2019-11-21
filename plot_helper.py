@@ -67,6 +67,8 @@ def plot_2d_representation(model, data, title="", cm=plt.get_cmap('gist_rainbow'
     buf = io.BytesIO()
 
     plt.savefig(buf, format="png")
+    plt.clf()
+
     buf.seek(0)
 
     return buf
