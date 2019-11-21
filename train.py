@@ -16,6 +16,7 @@ Options:
 import time
 import os
 
+import yaml
 import numpy as np
 from docopt import docopt
 
@@ -35,6 +36,7 @@ ARTIFACT_DIR = "./artifacts"
 BATCH_SIZE = 100 # todo: keep it fixed for now
 
 def train(model, dataset, epochs, beta, M, lr, strategy):
+    model_conf = model
 
     # todo: create data module for this
     train_set, test_set, small_set = datasets.get_dataset(dataset)
@@ -90,6 +92,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         m = m.result().numpy()
         print(utils.format_metrics("Train", m))
         tfutils.log_metrics(train_summary_writer, metric_labels, m, epoch)
+        train_metrics = m
 
         end_time = time.time()
 
@@ -97,7 +100,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
             img_buff = plot_helper.plot_2d_representation(
                 model,
                 small_set,
-                title="Strategy=%s | Beta=%f" % (strategy, beta)
+                title="Epoch=%d Strategy=%s  Beta=%f" % (epoch, strategy, beta)
             )
 
             tfutils.summary_image(
@@ -115,8 +118,31 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         m = m.result().numpy()
         print(utils.format_metrics("Test", m))
         tfutils.log_metrics(test_summary_writer, metric_labels, m, epoch)
+        test_metrics = m
 
         print(f"--- Time elapse for current epoch {end_time - start_time}")
+
+    print(train_metrics.astype(float))
+    print(dict(zip(metric_labels, list(train_metrics.astype(float)))))
+
+
+    summary = dict(
+        dataset=dataset,
+        model=model_conf,
+        strategy=strategy,
+        beta=beta,
+        epoch=epoch,
+        M=M,
+        lr=lr,
+        metrics=dict(
+            train=dict(zip(metric_labels, train_metrics.astype(float).tolist())),
+            test=dict(zip(metric_labels, test_metrics.astype(float).tolist())),
+        )
+    )
+
+    with open(f"{artifact_dir}/summary.yml", 'w') as f:
+        print(summary)
+        yaml.dump(summary, f, default_flow_style=False)
 
     print(f"Please see artifact at: {artifact_dir}")
 
