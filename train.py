@@ -33,7 +33,7 @@ import utils
 import tfutils
 
 ARTIFACT_DIR = "./artifacts"
-BATCH_SIZE = 100 # todo: keep it fixed for now
+BATCH_SIZE = 1000 # todo: keep it fixed for now
 
 def train(model, dataset, epochs, beta, M, lr, strategy):
     model_conf = model
@@ -83,9 +83,25 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         print(f"Epoch {epoch}")
 
         m = tf.keras.metrics.MeanTensor("train_metrics")
-        for train_x in train_dataset:
+        for batch in train_dataset:
+            # x, y = batch
+            # q_zgx = model.encode(x)
+    
+            # # shape: (M, batch_size, 10)
+            # z = q_zgx.sample(model.M)
+
+            # # shape: (M, batch_size, 10)
+            # logits = model.decode(z)
+
+            # # shape: (batch_size, 10)
+            # one_hot = tf.one_hot(y, depth=10)
+
+            # # shape: (M, batch_size, 10)
+            # sm = tf.nn.softmax(logits)
+            # print(tf.reduce_sum(sm, [2, 0, 1]))
+
             metrics = apply_gradient_func(
-                model, train_x, optimizers, epoch, opt_params
+                model, batch, optimizers, epoch, opt_params
             )
             m.update_state(metrics)
 
@@ -111,8 +127,8 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
             )
 
         m = tf.keras.metrics.MeanTensor("test_metrics")
-        for test_x in test_dataset:
-            metrics = losses.compute_loss(model, *test_x)
+        for batch in test_dataset:
+            metrics = losses.compute_loss(model, *batch)
             m.update_state(metrics)
 
         m = m.result().numpy()
