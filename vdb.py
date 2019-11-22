@@ -8,12 +8,14 @@ class VDB(tf.keras.Model):
         latent_dim = architecture["z"]
         self.latent_dim = latent_dim
 
+        num_cov_entries = int(latent_dim * (latent_dim + 1) / 2) if latent_dim == 2 else latent_dim
+
         self.encoder = tf.keras.Sequential(
             [
                 tf.keras.layers.Flatten(input_shape=input_shape),
                 tf.keras.layers.Dense(units=architecture["e1"], activation=tf.nn.relu),
                 tf.keras.layers.Dense(units=architecture["e2"], activation=tf.nn.relu),
-                tf.keras.layers.Dense(latent_dim + int(latent_dim * (latent_dim + 1) / 2)),
+                tf.keras.layers.Dense(latent_dim + num_cov_entries),
             ]
         )
 
@@ -40,16 +42,23 @@ class VDB(tf.keras.Model):
     def encode(self, x):
         entries = self.encoder(x)
         mean = entries[:, :self.latent_dim]
-        tril_entries = entries[:, self.latent_dim:]
+        cov_entries = entries[:, self.latent_dim:]
 
-        # build lower triangular matrix for Cholesky Decomposition
-        tril_raw = tfp.math.fill_triangular(entries[:, self.latent_dim:])
-        diag_entries = tf.nn.softplus(tf.eye(self.latent_dim) * tril_raw - 5.)
-        off_diag_entries = (1-tf.eye(self.latent_dim)) * tril_raw * 0.01
+        if self.latent_dim > 2:
+            cov_entries  = tf.nn.softplus(cov_entries - 5.)
+            return tfp.distributions.MultivariateNormalDiag(mean, cov_entries)
+        else:
+            # build lower triangular matrix for Cholesky Decomposition
+            tril_raw = tfp.math.fill_triangular(cov_entries)
+            diag_entries = tf.nn.softplus(tf.eye(self.latent_dim) * tril_raw - 5.)
 
-        tril = diag_entries + off_diag_entries
+            # use indepedent gaussians only when K > 2
+            factor = tf.where(self.latent_dim == 2, 0.01, 0)
+            off_diag_entries = (1-tf.eye(self.latent_dim)) * tril_raw * factor
 
-        return tfp.distributions.MultivariateNormalTriL(mean, tril)
+            tril = diag_entries + off_diag_entries
+
+            return tfp.distributions.MultivariateNormalTriL(mean, tril)
 
     @tf.function
     def decode(self, z, apply_sigmoid=False):
