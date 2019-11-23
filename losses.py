@@ -28,7 +28,7 @@ def compute_acc(model, x, y, L):
     return acc
 
 @tf.function
-def compute_loss(model, x, y, M=1):
+def compute_loss(model, x, y, M):
     # shape: (batch_size, 10)
     one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
 
@@ -55,12 +55,12 @@ def compute_loss(model, x, y, M=1):
     return class_loss + model.beta*info_loss, IZY_bound, IZX_bound
 
 @tf.function
-def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params):
+def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params, M):
     optimizer = optimizers[0]
 
     with tf.GradientTape() as tape:
         x, y = batch
-        metrics = compute_loss(model, x, y)
+        metrics = compute_loss(model, x, y, M)
         loss = metrics[0]
 
     gradients = tape.gradient(
@@ -82,12 +82,12 @@ def apply_gradient(tape, loss, variables, optimizer):
     )
 
 # @tf.function
-def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params):
+def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
     enc_opt, dec_opt = optimizers
 
     with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
         x, y = batch
-        metrics = compute_loss(model, x, y)
+        metrics = compute_loss(model, x, y, M)
         loss = metrics[0]
 
     if epoch % opt_params["d"] == 0:

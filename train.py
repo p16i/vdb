@@ -89,7 +89,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         for i, batch in enumerate(train_dataset):
 
             metrics = apply_gradient_func(
-                model, batch, optimizers, epoch, opt_params
+                model, batch, optimizers, epoch, opt_params, M
             )
             m.update_state(metrics)
 
@@ -127,7 +127,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
         m = tf.keras.metrics.MeanTensor("test_metrics")
         am = tf.keras.metrics.MeanTensor("test_acc_metrics")
         for batch in test_dataset:
-            metrics = losses.compute_loss(model, *batch)
+            metrics = losses.compute_loss(model, *batch, M)
             m.update_state(metrics)
             x, y = batch
             am.update_state(
