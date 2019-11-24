@@ -1,6 +1,6 @@
 """
 Usage:
-train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr>] --strategy=<strategy> --dataset=<dataset> <model>
+train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr> --output-dir=<output-dir>] --strategy=<strategy> --dataset=<dataset> <model>
 
 Options:
   -h --help                 Show this screen.
@@ -11,6 +11,7 @@ Options:
   --epoch=<epoch>           Number of epochs [default: 10]
   --strategy=<strategy>     Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
                             "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
+  --output-dir=<output-dir>   [default: ./artifacts]
 """
 
 import time
@@ -33,10 +34,9 @@ import plot_helper
 import utils
 import tfutils
 
-ARTIFACT_DIR = "./artifacts"
 BATCH_SIZE = 100 # todo: keep it fixed for now
 
-def train(model, dataset, epochs, beta, M, lr, strategy):
+def train(model, dataset, epochs, beta, M, lr, strategy, output_dir):
     model_conf = model
 
     # todo: create data module for this
@@ -60,7 +60,8 @@ def train(model, dataset, epochs, beta, M, lr, strategy):
     experiment_name = utils.get_experiment_name(f"vdb-{dataset}")
 
     print(f"Experiment name: {experiment_name}")
-    artifact_dir = f"{ARTIFACT_DIR}/{experiment_name}"
+    artifact_dir = f"{output_dir}/{experiment_name}"
+    print(f"Artifact directory: {artifact_dir}")
 
     # Prepare experiment's directory and logging
     os.makedirs(f"{artifact_dir}/figures")
@@ -177,5 +178,6 @@ if __name__ == "__main__":
     epoch = int(arguments["--epoch"])
     M = int(arguments["-M"])
     lr = float(arguments["--lr"])
+    output_dir = arguments['--output-dir']
 
-    train(model, dataset, epoch, beta, M, lr, strategy)
+    train(model, dataset, epoch, beta, M, lr, strategy, output_dir)
