@@ -71,17 +71,7 @@ def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params,
 
     return metrics
 
-def apply_gradient(tape, loss, variables, optimizer):
-    gradients = tape.gradient(
-        loss,
-        variables 
-    )
-
-    optimizer.apply_gradients(
-        zip(gradients, variables)
-    )
-
-# @tf.function
+@tf.function
 def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
     enc_opt, dec_opt = optimizers
 
@@ -90,10 +80,28 @@ def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
         metrics = compute_loss(model, x, y, M)
         loss = metrics[0]
 
-    if epoch % opt_params["d"] == 0:
-        apply_gradient(dec_tape, loss, model.decoder.trainable_variables, dec_opt)
+    if tf.equal(epoch % opt_params["d"], 0):
+        dec_opt.apply_gradients(
+            zip(
+                dec_tape.gradient(
+                    loss,
+                    model.decoder.trainable_variables
+                ),
+                model.decoder.trainable_variables
+            )
+        )
 
-    if epoch % opt_params["e"] == 0:
-        apply_gradient(enc_tape, loss, model.encoder.trainable_variables, enc_opt)
+    if tf.equal(epoch % opt_params["e"], 0):
+        tf.print("Enc opt")
+
+        enc_opt.apply_gradients(
+            zip(
+                enc_tape.gradient(
+                    loss,
+                    model.encoder.trainable_variables
+                ),
+                model.encoder.trainable_variables
+            )
+        )
 
     return metrics
