@@ -7,7 +7,7 @@ Options:
   --dataset=<dataset>       One from {mnist, fashion_mnist, cifar10} [default: mnist]
   --beta=<beta>             Value of β [default: 0.001]
   -M=<M>                    Value of M [default: 1]
-  --lr=<lr>                 Learning rate [default: 0.001]
+  --lr=<lr>                 Learning rate [default: 0.0001]
   --epoch=<epoch>           Number of epochs [default: 10]
   --strategy=<strategy>     Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
                             "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
