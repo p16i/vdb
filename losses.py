@@ -92,8 +92,6 @@ def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
         )
 
     if tf.equal(epoch % opt_params["e"], 0):
-        tf.print("Enc opt")
-
         enc_opt.apply_gradients(
             zip(
                 enc_tape.gradient(
