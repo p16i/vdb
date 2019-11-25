@@ -13,5 +13,5 @@ for s in $STRATEGIES; do
     time python3 train.py \
         --dataset $DATASET --beta $BETA -M $M \
         --output-dir="./artifacts/$OUTPUT" \
-        --strategy="$s" "vdb/e1:1024|e2:1024|z:$K" \
+        --strategy="$s" "vdb/e1:1024|e2:1024|z:$K"
 done
