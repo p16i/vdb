@@ -1,7 +1,7 @@
 from datetime import datetime
 
 def get_experiment_name(prefix=""):
-    timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S')
+    timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S-%f')
     if prefix:
         return f"{prefix}--{timestamp}"
     else:
