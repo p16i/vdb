@@ -1,9 +1,21 @@
+import pytest
+
 import losses
 import numpy as np
 
-B = 100
-M = 6
-def test_class_loss():
+@pytest.mark.parametrize(
+    "B,M",
+    [
+        (100, 1),
+        (100, 3),
+        (100, 6),
+        (100, 12),
+        (200, 1),
+        (200, 3),
+        (200, 6),
+        (200, 12),
+    ])
+def test_class_loss(B, M):
     np.random.seed(71)
 
     logits = np.random.uniform(size=(M, B, 10))
