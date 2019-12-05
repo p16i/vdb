@@ -23,7 +23,7 @@ def get_optimizer(strategy, lr, dataset, batch_size):
         return [
             tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5)
         ], strategy, {}
-    elif strategy[:3] == "seq":
+    elif strategy[:3] in ["seq", "alt"]:
         slugs = strategy.split("/")
         print(f"using {slugs[0]} strategy with {slugs[1]}")
 
@@ -135,6 +135,27 @@ def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
         )
 
     return metrics
+
+
+def compute_apply_gradients_variables(model, variables, batch, optimizer, M):
+    with tf.GradientTape() as tape:
+        x, y = batch
+        metrics = compute_loss(model, x, y, M)
+        loss = metrics[0]
+
+    optimizer.apply_gradients(
+        zip(tape.gradient(loss, variables), variables)
+    )
+
+    return metrics
+
+@tf.function
+def compute_apply_gradients_algo2_enc(model, variables, batch, optimizer, M):
+    return compute_apply_gradients_variables(model, variables, batch, optimizer, M)
+
+@tf.function
+def compute_apply_gradients_algo2_dec(model, variables, batch, optimizer, M):
+    return compute_apply_gradients_variables(model, variables, batch, optimizer, M)
 
 def compute_class_loss_tf1(logits, y):
     # logits's size = (M, Batch, 10)
