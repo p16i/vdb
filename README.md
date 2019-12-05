@@ -21,6 +21,14 @@ Options:
                             "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
 ```
 
+### Running Unit tests
+```
+pytest tests.py
+```
+
+**Note:** Currently, we just have a test for verifying results of the class loss from TF1 and TF2 implementations.
+
+
 ### Core Modules
 - `vdb.py` contains the details of our model, i.e. how its architecture and computation look like.
 - `losses.py` contains the IB loss function and the implementations of optimization strategies:
