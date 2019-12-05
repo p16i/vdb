@@ -1,4 +1,5 @@
 from datetime import datetime
+import yaml
 
 def get_experiment_name(prefix=""):
     timestamp = datetime.now().strftime('%Y-%m-%d--%H-%M-%S-%f')
@@ -22,3 +23,16 @@ def parse_arch(arch):
     parts = map(lambda x: (x[0], to_number(x[1])), parts)
 
     return dict(parts)
+
+def read_summary(fp):
+    with open(fp, "r") as fh:
+        summary = yaml.safe_load(fh)
+
+    for s, v in summary['metrics'].items():
+        for kk, vv in v.items():
+            summary[f"metrics:{s}:{kk}"] = vv
+
+    del summary['metrics']
+    summary['filename'] = fp.split("/")[-2]
+
+    return summary
