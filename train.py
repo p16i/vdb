@@ -36,7 +36,7 @@ import tfutils
 
 BATCH_SIZE = 100 # todo: keep it fixed for now
 
-def train(model, dataset, epochs, beta, M, lr, strategy, output_dir):
+def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     model_conf = model
 
     # todo: create data module for this
@@ -50,10 +50,15 @@ def train(model, dataset, epochs, beta, M, lr, strategy, output_dir):
     test_dataset = tf.data.Dataset.from_tensor_slices(test_set) \
     .shuffle(TEST_BUF).batch(BATCH_SIZE)
     
-    print(f"Training with {model} on {dataset} for {epochs} epochs (lr={lr})")
-    print(f"Params: beta={beta} M={M} lr={lr} strategy={strategy}")
+    print(f"Training with {model} on {dataset} for {epochs} epochs (lr={initial_lr})")
+    print(f"Params: beta={beta} M={M} lr={initial_lr} strategy={strategy}")
 
-    optimizers, strategy_name, opt_params = losses.get_optimizer(strategy, lr)
+    optimizers, strategy_name, opt_params = losses.get_optimizer(
+        strategy,
+        lr,
+        dataset,
+        BATCH_SIZE
+    )
 
     apply_gradient_func = getattr(losses, f"compute_apply_{strategy_name}_gradients")
 
@@ -79,6 +84,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy, output_dir):
 
     metric_labels = ["loss", "I_YZ", "I_XZ"]
     acc_labels = ["accuracy_L1", "accuracy_L12"]
+    lr_labels = list(map(lambda x: f"lr_{x}", range(len(optimizers))))
 
     for epoch in range(1, epochs + 1):
         start_time = time.time()
@@ -104,9 +110,17 @@ def train(model, dataset, epochs, beta, M, lr, strategy, output_dir):
 
         m = m.result().numpy()
         am = am.result().numpy()
-        print(utils.format_metrics("Train", m, am))
+
         tfutils.log_metrics(train_summary_writer, metric_labels, m, epoch)
         tfutils.log_metrics(train_summary_writer, acc_labels, am, epoch)
+
+        tfutils.log_metrics(
+            train_summary_writer,
+            lr_labels,
+            map(lambda opt: opt._decayed_lr(tf.float32), optimizers),
+            epoch
+        )
+
         train_metrics = m.astype(float).tolist() + am.astype(float).tolist()
 
         end_time = time.time()
@@ -154,7 +168,7 @@ def train(model, dataset, epochs, beta, M, lr, strategy, output_dir):
         beta=beta,
         epoch=epoch,
         M=M,
-        lr=lr,
+        lr=initial_lr,
         metrics=dict(
             train=dict(zip(metric_labels + acc_labels, train_metrics)),
             test=dict(zip(metric_labels + acc_labels, test_metrics)),

@@ -3,20 +3,34 @@ import math
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+import datasets
 import utils
 
-def get_optimizer(strategy, lr):
+def get_lr(lr, dataset, batch_size):
+    if dataset=="mnist":
+       return tf.keras.optimizers.schedules.ExponentialDecay(
+            lr,
+            decay_steps=2*int(datasets.dataset_size[dataset][0] / batch_size),
+            decay_rate=0.97,
+            staircase=True
+        )
+    else:
+        return lr
+
+def get_optimizer(strategy, lr, dataset, batch_size):
     if strategy == "oneshot":
         print("using oneshot strategy")
-        return [tf.keras.optimizers.Adam(lr)], strategy, {}
+        return [
+            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5)
+        ], strategy, {}
     elif strategy[:3] == "seq":
         slugs = strategy.split("/")
         print(f"using {slugs[0]} strategy with {slugs[1]}")
 
         # one for encoder and decoder
         return (
-            tf.keras.optimizers.Adam(lr), 
-            tf.keras.optimizers.Adam(lr),
+            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
+            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
         ), slugs[0], utils.parse_arch(slugs[1])
 
 @tf.function
