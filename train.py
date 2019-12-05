@@ -110,6 +110,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
 
         m = m.result().numpy()
         am = am.result().numpy()
+        print(utils.format_metrics("Train", m, am))
 
         tfutils.log_metrics(train_summary_writer, metric_labels, m, epoch)
         tfutils.log_metrics(train_summary_writer, acc_labels, am, epoch)
