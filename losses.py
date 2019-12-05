@@ -21,19 +21,29 @@ def get_optimizer(strategy, lr):
 
 @tf.function
 def compute_acc(model, x, y, L):
-    _, mean_sm = model(x, L=L)
+    _, logits = model(x, L=L)
+    mean_sm = mean_softmax_from_logits(logits)
     pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
     acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
 
     return acc
 
 @tf.function
-def compute_loss(model, x, y, M):
+def mean_softmax_from_logits(logits):
+    # logit's shape: (M, batch_size, 10)
+
+    # shape: (M, batch_size, 10)
+    sm = tf.nn.softmax(logits - tf.reduce_max(logits, 2, keepdims=True))
+
+    # shape: (batch_size, 10)
+    return tf.reduce_mean(sm, 0)
+
+@tf.function
+def compute_class_loss_tf2(logits, y):
     # shape: (batch_size, 10)
     one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
 
-    # shape: (batch_size, 10)
-    q_zgx, mean_sm = model(x, L=M)
+    mean_sm = mean_softmax_from_logits(logits)
 
     class_loss_float64 = tf.reduce_mean( # average across all samples in batch
         - tf.reduce_sum(
@@ -43,7 +53,15 @@ def compute_loss(model, x, y, M):
         )
     ) / math.log(2.)
 
-    class_loss = tf.dtypes.cast(class_loss_float64, dtype=tf.float32)
+    return tf.dtypes.cast(class_loss_float64, dtype=tf.float32)
+
+@tf.function
+def compute_loss(model, x, y, M):
+
+    # shape: (batch_size, 10)
+    q_zgx, logits = model(x, L=M)
+
+    class_loss = compute_class_loss_tf2(logits, y)
 
     info_loss = tf.reduce_mean(
         tfp.distributions.kl_divergence(q_zgx, model.prior)
@@ -103,3 +121,17 @@ def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
         )
 
     return metrics
+
+def compute_class_loss_tf1(logits, y):
+    # logits's size = (M, Batch, 10)
+    # y's size = (10,)
+
+    one_hot_labels = tf.one_hot(y, depth=10, dtype=tf.float64)
+
+    return tf.reduce_mean(
+        -tf.reduce_sum(
+            one_hot_labels * tf.math.log(
+                tf.reduce_mean(tf.nn.softmax(logits), 0)
+            ),
+        1)
+    ) / math.log(2)

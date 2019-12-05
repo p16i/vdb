@@ -78,10 +78,4 @@ class VDB(tf.keras.Model):
         # shape: (M, batch_size, 10)
         logits = tf.dtypes.cast(self.decode(z), tf.float64)
 
-        # shape: (M, batch_size, 10)
-        sm = tf.nn.softmax(logits - tf.reduce_max(logits, 2, keepdims=True))
-
-        # shape: (batch_size, 10)
-        mean_sm = tf.reduce_mean(sm, 0)
-
-        return q_zgx, mean_sm
+        return q_zgx, logits
