@@ -67,7 +67,7 @@ def compute_class_loss_tf2(logits, y):
         )
     ) / math.log(2.)
 
-    return tf.dtypes.cast(class_loss_float64, dtype=tf.float32)
+    return class_loss_float64
 
 @tf.function
 def compute_loss(model, x, y, M):
@@ -77,9 +77,12 @@ def compute_loss(model, x, y, M):
 
     class_loss = compute_class_loss_tf2(logits, y)
 
-    info_loss = tf.reduce_mean(
+    info_loss = tf.cast(tf.reduce_mean(
         tfp.distributions.kl_divergence(q_zgx, model.prior)
-    ) / math.log(2.)
+    ) / math.log(2.),
+        dtype=tf.float64
+    )
+
 
     IZY_bound = math.log(10, 2) - class_loss
     IZX_bound = info_loss
