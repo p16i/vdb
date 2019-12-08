@@ -39,7 +39,6 @@ BATCH_SIZE = 100 # todo: keep it fixed for now
 def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     model_conf = model
 
-    # todo: create data module for this
     train_set, test_set, small_set = datasets.get_dataset(dataset)
 
     TRAIN_BUF, TEST_BUF = datasets.dataset_size[dataset]
