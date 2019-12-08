@@ -30,7 +30,9 @@ pytest tests.py
 
 
 ### Core Modules
-- `vdb.py` contains the details of our model, i.e. how its architecture and computation look like.
+- `nets/*` contains the details of our models, i.e. how its architecture and computation look like. These architectures include
+  - `vdb`: MLP with diagonal covariance matrix
+  - `vdb_fcov`: MLP with full covariance matrix.
 - `losses.py` contains the IB loss function and the implementations of optimization strategies:
   - oneshot
   - sequential
