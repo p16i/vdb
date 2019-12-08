@@ -27,9 +27,9 @@ def get_dataset(name):
     train_labels = train_labels.astype("int32").reshape(-1)
     test_labels = test_labels.astype("int32").reshape(-1)
 
-    ## Normalizing the images to the range of [0., 1.]
-    train_images /= 255.
-    test_images /= 255.
+    ## Normalizing the images to the range of [-1, 1]
+    train_images = 2*(train_images / 255.) - 1
+    test_images  = 2*(test_images / 255.) - 1
 
     ## Binarization
     # if not name == "cifar10":

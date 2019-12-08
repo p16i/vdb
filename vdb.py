@@ -26,9 +26,10 @@ class VDB(tf.keras.Model):
             ]
         )
 
-        self.prior = tfp.distributions.MultivariateNormalDiag(
-            tf.zeros(latent_dim), tf.ones(latent_dim)
-        )
+        # self.prior = tfp.distributions.MultivariateNormalDiag(
+        #     tf.zeros(latent_dim), tf.ones(latent_dim)
+        # )
+        self.prior = tfp.distributions.Normal(0, 1)
 
         self.beta = beta
         self.M = M
@@ -46,7 +47,8 @@ class VDB(tf.keras.Model):
 
         if self.latent_dim > 2:
             cov_entries  = tf.nn.softplus(cov_entries - 5.)
-            return tfp.distributions.MultivariateNormalDiag(mean, cov_entries)
+            # return tfp.distributions.MultivariateNormalDiag(mean, cov_entries)
+            return tfp.distributions.Normal(mean, cov_entries)
         else:
             # build lower triangular matrix for Cholesky Decomposition
             tril_raw = tfp.math.fill_triangular(cov_entries)
