@@ -70,28 +70,33 @@ def compute_class_loss_tf2(logits, y):
     return class_loss_float64
 
 @tf.function
-def compute_loss(model, x, y, M):
-
-    # shape: (batch_size, 10)
-    q_zgx, logits = model(x, L=M)
-
-    class_loss = compute_class_loss_tf2(logits, y)
-
-    # info_loss = tf.cast(tf.reduce_mean(
-    #     tfp.distributions.kl_divergence(q_zgx, model.prior)
-    # ) / math.log(2.),
-    #     dtype=tf.float64
-    # )
-    info_loss = tf.cast(
+def compute_info_loss_diag_cov(q_zgx, prior):
+    return tf.cast(
         tf.reduce_sum(
             tf.reduce_mean(
-                tfp.distributions.kl_divergence(q_zgx, model.prior),
+                tfp.distributions.kl_divergence(q_zgx, prior),
                 0
             )
         ) / math.log(2.),
         dtype=tf.float64
     )
 
+@tf.function
+def compute_info_loss_full_cov(q_zgx, prior):
+    return tf.cast(tf.reduce_mean(
+        tfp.distributions.kl_divergence(q_zgx, prior)
+    ) / math.log(2.),
+        dtype=tf.float64
+    )
+
+@tf.function
+def compute_loss(model, x, y, M):
+    # shape: (batch_size, 10)
+    q_zgx, logits = model(x, L=M)
+
+    class_loss = compute_class_loss_tf2(logits, y)
+
+    info_loss = model.compute_info_loss(q_zgx, model.prior)
 
     IZY_bound = math.log(10, 2) - class_loss
     IZX_bound = info_loss
@@ -148,7 +153,6 @@ def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
 
     return metrics
 
-
 def compute_apply_gradients_variables(model, variables, batch, optimizer, M):
     with tf.GradientTape() as tape:
         x, y = batch
@@ -170,6 +174,7 @@ def compute_apply_gradients_algo2_dec(model, variables, batch, optimizer, M):
     return compute_apply_gradients_variables(model, variables, batch, optimizer, M)
 
 def compute_class_loss_tf1(logits, y):
+    # this is only for testing purposes.
     # logits's size = (M, Batch, 10)
     # y's size = (10,)
 

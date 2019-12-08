@@ -25,7 +25,7 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 
 # our core modules
-import vdb
+import nets
 import datasets
 import losses
 
@@ -66,9 +66,6 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     artifact_dir = f"{output_dir}/{experiment_name}"
     print(f"Artifact directory: {artifact_dir}")
 
-    # Prepare experiment's directory and logging
-    os.makedirs(f"{artifact_dir}/figures")
-
     train_log_dir = f"{artifact_dir}/logs/train"
     test_log_dir = f"{artifact_dir}/logs/test"
 
@@ -76,9 +73,12 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
     # Instantiate model
-    _, architecture = model.split("/")
+    network_name, architecture = model.split("/")
     architecture = utils.parse_arch(architecture)
-    model = vdb.VDB(architecture, datasets.input_dims[dataset], beta=beta, M=M)
+
+    model = nets.get_network(network_name)(
+        architecture, datasets.input_dims[dataset], beta=beta, M=M
+    )
 
     metric_labels = ["loss", "I_YZ", "I_XZ"]
     acc_labels = ["accuracy_L1", "accuracy_L12"]
