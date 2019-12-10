@@ -7,15 +7,16 @@ import datasets
 import utils
 
 def get_lr(lr, dataset, batch_size):
-    if dataset=="mnist":
-       return tf.keras.optimizers.schedules.ExponentialDecay(
-            lr,
-            decay_steps=2*int(datasets.dataset_size[dataset][0] / batch_size),
-            decay_rate=0.97,
-            staircase=True
-        )
-    else:
-        return lr
+    # if decay:
+    #     print("Using learning rate decay")
+    #     return tf.keras.optimizers.schedules.ExponentialDecay(
+    #         lr,
+    #         decay_steps=2*int(datasets.dataset_size[dataset][0] / batch_size),
+    #         decay_rate=0.97,
+    #         staircase=True
+    #     )
+    # else:
+    return lr
 
 def get_optimizer(strategy, lr, dataset, batch_size):
     if strategy == "oneshot":
