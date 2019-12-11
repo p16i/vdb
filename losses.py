@@ -67,6 +67,9 @@ def compute_class_loss_tf2(logits, y):
             1 # sum over all classes
         )
     ) / math.log(2.)
+    if class_loss_float64 < 0:
+        print(mean_sm)
+        raise SystemExit("xx")
 
     return class_loss_float64
 
