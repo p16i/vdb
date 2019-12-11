@@ -12,12 +12,15 @@ class Net(BaseNet):
         latent_dim = architecture["z"]
         self.latent_dim = latent_dim
 
-        num_cov_entries = latent_dim
+        num_cov_entries = int(latent_dim * (latent_dim + 1) / 2)
 
         self.encoder = tf.keras.Sequential(
             [
                 tf.keras.layers.Flatten(input_shape=input_shape),
                 tf.keras.layers.Dense(units=architecture["e1"]),
+                tf.keras.layers.BatchNormalization(),
+                tf.keras.layers.Lambda(lambda x: tf.nn.elu(x)),
+                tf.keras.layers.Dense(units=architecture["e2"]),
                 tf.keras.layers.BatchNormalization(),
                 tf.keras.layers.Lambda(lambda x: tf.nn.elu(x)),
                 tf.keras.layers.Dense(latent_dim + num_cov_entries),
