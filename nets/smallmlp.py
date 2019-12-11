@@ -34,7 +34,9 @@ class Net(BaseNet):
             ]
         )
 
-        self.prior = tfp.distributions.Normal(0, 1)
+        self.prior = tfp.distributions.MultivariateNormalDiag(
+            tf.zeros(latent_dim), tf.ones(latent_dim)
+        )
 
         self.compute_info_loss = losses.compute_info_loss_diag_cov
 
@@ -46,9 +48,17 @@ class Net(BaseNet):
         mean = entries[:, :self.latent_dim]
         cov_entries = entries[:, self.latent_dim:]
 
-        cov_entries  = tf.nn.softplus(cov_entries - 5.)
+        # build lower triangular matrix for Cholesky Decomposition
+        tril_raw = tfp.math.fill_triangular(cov_entries)
+        diag_entries = tf.nn.softplus(tf.eye(self.latent_dim) * tril_raw - 5.)
 
-        return tfp.distributions.Normal(mean, cov_entries)
+        # use indepedent gaussians only when K > 2
+        factor = tf.where(self.latent_dim == 2, 0.01, 0)
+        off_diag_entries = (1-tf.eye(self.latent_dim)) * tril_raw * factor
+
+        tril = diag_entries + off_diag_entries
+
+        return tfp.distributions.MultivariateNormalTriL(mean, tril)
 
     def call(self, x, L=1):
         q_zgx = self.encode(x)
