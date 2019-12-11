@@ -17,13 +17,13 @@ class Net(BaseNet):
         self.encoder = tf.keras.Sequential(
             [
                 tf.keras.layers.Flatten(input_shape=input_shape),
-                tf.keras.layers.Dense(units=architecture["e1"]),
+                tf.keras.layers.Dense(units=architecture["e1"], kernel_initializer="he_uniform", bias_initializer="he_uniform"),
                 tf.keras.layers.BatchNormalization(),
                 tf.keras.layers.Lambda(lambda x: tf.nn.elu(x)),
-                tf.keras.layers.Dense(units=architecture["e2"]),
+                tf.keras.layers.Dense(units=architecture["e2"], kernel_initializer="he_uniform", bias_initializer="he_uniform"),
                 tf.keras.layers.BatchNormalization(),
                 tf.keras.layers.Lambda(lambda x: tf.nn.elu(x)),
-                tf.keras.layers.Dense(latent_dim + num_cov_entries),
+                tf.keras.layers.Dense(latent_dim + num_cov_entries, kernel_initializer="he_uniform", bias_initializer="he_uniform"),
             ]
         )
 
