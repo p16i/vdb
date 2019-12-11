@@ -142,7 +142,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         m = tf.keras.metrics.MeanTensor("test_metrics")
         am = tf.keras.metrics.MeanTensor("test_acc_metrics")
         for batch in test_dataset:
-            metrics = losses.compute_loss(model, *batch, M)
+            metrics = losses.compute_loss(model, *batch, M, training=False)
             m.update_state(metrics)
             x, y = batch
             am.update_state(
@@ -155,6 +155,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         m = m.result().numpy()
         am = am.result().numpy()
         print(utils.format_metrics("Test", m, am))
+
         tfutils.log_metrics(test_summary_writer, metric_labels, m, epoch)
         tfutils.log_metrics(test_summary_writer, acc_labels, am, epoch)
         test_metrics = m.astype(float).tolist() + am.astype(float).tolist()

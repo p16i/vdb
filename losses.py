@@ -91,9 +91,9 @@ def compute_info_loss_full_cov(q_zgx, prior):
     )
 
 @tf.function
-def compute_loss(model, x, y, M):
+def compute_loss(model, x, y, M, training=True):
     # shape: (batch_size, 10)
-    q_zgx, logits = model(x, L=M)
+    q_zgx, logits = model(x, L=M, training=training)
 
     class_loss = compute_class_loss_tf2(logits, y)
 
