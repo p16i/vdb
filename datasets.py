@@ -2,6 +2,8 @@ import numpy as np
 
 import tensorflow as tf
 
+from sklearn.model_selection import StratifiedShuffleSplit
+
 input_dims = {
     "mnist": (28, 28, 1),
     "fashion_mnist": (28, 28, 1),
@@ -24,8 +26,15 @@ def get_dataset(name):
         (test_images, test_labels), \
         (selected_images, selected_labels) = get_dataset('cifar10')
 
-        chosen_ix = np.random.choice(train_images.shape[0], 40000)
+        sss = StratifiedShuffleSplit(
+            n_splits=1,
+            test_size=1 - 1.0*dataset_size['cifar10-40k'][0]/dataset_size['cifar10'][0]
+        )
+
+        # we don't care about the other ix
+        chosen_ix, _  = next(sss.split(train_images, train_labels))
         train_images = train_images[chosen_ix, :, :]
+
         print(train_images.shape)
         train_labels = train_labels[chosen_ix]
 
