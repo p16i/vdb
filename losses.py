@@ -7,22 +7,23 @@ import datasets
 import utils
 
 def get_lr(lr, dataset, batch_size):
-    # if decay:
-    #     print("Using learning rate decay")
-    #     return tf.keras.optimizers.schedules.ExponentialDecay(
-    #         lr,
-    #         decay_steps=2*int(datasets.dataset_size[dataset][0] / batch_size),
-    #         decay_rate=0.97,
-    #         staircase=True
-    #     )
-    # else:
+    if decay:
+        print("Using learning rate decay")
+        return tf.keras.optimizers.schedules.ExponentialDecay(
+            lr,
+            decay_steps=2*int(datasets.dataset_size[dataset][0] / batch_size),
+            decay_rate=0.97,
+            staircase=True
+        )
+    else:
     return lr
 
 def get_optimizer(strategy, lr, dataset, batch_size):
+    lr = get_lr(lr, dataset, batch_size)
     if strategy == "oneshot":
         print("using oneshot strategy")
         return [
-            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5)
+            tf.keras.optimizers.Adam(lr, 0.5)
         ], strategy, {}
     elif strategy[:3] in ["seq", "alt"]:
         slugs = strategy.split("/")
@@ -30,8 +31,8 @@ def get_optimizer(strategy, lr, dataset, batch_size):
 
         # one for encoder and decoder
         return (
-            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
-            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
+            tf.keras.optimizers.Adam(lr, 0.5),
+            tf.keras.optimizers.Adam(lr, 0.5),
         ), slugs[0], utils.parse_arch(slugs[1])
 
 @tf.function
