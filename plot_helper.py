@@ -73,6 +73,6 @@ def plot_2d_representation(model,
     plt.savefig(path)
     plt.close("all")
 
-    z = np.concatenate([mu, cov.reshape(cov.shape[0], -1)], axis=1)
+    z = np.concatenate([labels.reshape((-1, 1)), mu, cov.reshape(cov.shape[0], -1)], axis=1)
 
     np.save(path.replace(".png", ""), z)
