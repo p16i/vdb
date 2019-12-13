@@ -42,7 +42,13 @@ def plot_ellipse(ax, mu, cov, n_std=1, facecolor="none", edgecolor="red", alpha=
     ellipse.set_transform(transf + ax.transData)
     ax.add_patch(ellipse)
 
-def plot_2d_representation(model, data, title="", cm=plt.get_cmap('gist_rainbow')):
+def plot_2d_representation(model,
+        data,
+        path,
+        title="",
+        cm=plt.get_cmap('gist_rainbow'),
+    ):
+
     images, labels = data
     q_zgx = model.encode(images)
 
@@ -64,11 +70,9 @@ def plot_2d_representation(model, data, title="", cm=plt.get_cmap('gist_rainbow'
             ij = ix[j]
             plot_ellipse(ax, mu[ij,:], cov[ij, :, :], edgecolor=cm(i/10))
 
-    buf = io.BytesIO()
-
-    plt.savefig(buf, format="png")
+    plt.savefig(path)
     plt.close("all")
 
-    buf.seek(0)
+    z = np.concatenate([mu, cov.reshape(cov.shape[0], -1)], axis=1)
 
-    return buf
+    np.save(path.replace(".png", ""), z)

@@ -137,20 +137,6 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
 
         end_time = time.time()
 
-        if model.latent_dim == 2:
-            img_buff = plot_helper.plot_2d_representation(
-                model,
-                small_set,
-                title="Epoch=%d Strategy=%s  Beta=%f" % (epoch, strategy, beta)
-            )
-
-            tfutils.summary_image(
-                test_summary_writer,
-                img_buff,
-                "latent-representation",
-                epochs
-            )
-
         m = tf.keras.metrics.MeanTensor("test_metrics")
         am = tf.keras.metrics.MeanTensor("test_acc_metrics")
         for batch in test_dataset:
@@ -187,6 +173,14 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         ),
         algorithm="algo2"
     )
+
+    if model.latent_dim == 2:
+        plot_helper.plot_2d_representation(
+            model,
+            small_set,
+            title="Epoch=%d Strategy=%s  Beta=%f M=%f" % (epoch, strategy, beta, M),
+            path=f"{artifact_dir}/latent-representation.png"
+        )
 
     with open(f"{artifact_dir}/summary.yml", 'w') as f:
         print(summary)
