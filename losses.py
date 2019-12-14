@@ -54,7 +54,21 @@ def mean_softmax_from_logits(logits):
     return tf.reduce_mean(sm, 0)
 
 @tf.function
-def compute_class_loss_tf2(logits, y):
+def compute_vib_class_loss(logits, y):
+    # shape: (batch_size, 10)
+    one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
+
+    class_loss_float64 = tf.reduce_mean( # average across all samples in batch
+        - tf.reduce_sum(
+            tf.multiply(tf.reduce_mean(tf.math.log_softmax(logits), 0), one_hot),
+            1 # sum over all classes
+        )
+    ) / math.log(2.)
+
+    return class_loss_float64
+
+@tf.function
+def compute_vdb_class_loss_tf2(logits, y):
     # shape: (batch_size, 10)
     one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
 
@@ -95,9 +109,8 @@ def compute_loss(model, x, y, M):
     # shape: (batch_size, 10)
     q_zgx, logits = model(x, L=M)
 
-    class_loss = compute_class_loss_tf2(logits, y)
-
-    info_loss = model.compute_info_loss(q_zgx, model.prior)
+    class_loss = model.class_loss(logits, y)
+    info_loss = model.info_loss(q_zgx, model.prior)
 
     IZY_bound = math.log(10, 2) - class_loss
     IZX_bound = info_loss

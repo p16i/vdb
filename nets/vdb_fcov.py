@@ -34,7 +34,8 @@ class Net(BaseNet):
             tf.zeros(latent_dim), tf.ones(latent_dim)
         )
 
-        self.compute_info_loss = losses.compute_info_loss_full_cov
+        self.class_loss = losses.compute_vdb_class_loss_tf2
+        self.info_loss = losses.compute_info_loss_full_cov
 
         self.beta = beta
         self.M = M
