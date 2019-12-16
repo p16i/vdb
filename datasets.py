@@ -31,7 +31,7 @@ def get_dataset(name):
     if name in ["mnist", "fashionmnist"]:
         train_images = 2*(train_images / 255.) - 1
         test_images  = 2*(test_images / 255.) - 1
-    elif name is "cifar10":
+    elif name == "cifar10":
         mean, std = (0.4912, 0.4818, 0.4460), (0.2470, 0.2434, 0.2614)
         train_images = (train_images - mean)/std
         test_images = (test_images - mean)/std
