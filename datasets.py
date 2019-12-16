@@ -28,15 +28,15 @@ def get_dataset(name):
     test_labels = test_labels.astype("int32").reshape(-1)
 
     ## Normalizing the images to the range of [-1, 1]
-    train_images = 2*(train_images / 255.) - 1
-    test_images  = 2*(test_images / 255.) - 1
-
-    ## Binarization
-    # if not name == "cifar10":
-    #     train_images[train_images >= .5] = 1.
-    #     train_images[train_images < .5] = 0.
-    #     test_images[test_images >= .5] = 1.
-    #     test_images[test_images < .5] = 0.
+    if name in ["mnist", "fashionmnist"]:
+        train_images = 2*(train_images / 255.) - 1
+        test_images  = 2*(test_images / 255.) - 1
+    elif name is "cifar10":
+        mean, std = (0.4912, 0.4818, 0.4460), (0.2470, 0.2434, 0.2614)
+        train_images = (train_images - mean)/std
+        test_images = (test_images - mean)/std
+    else:
+        raise SystemError(f"No normalization implemented for {name}")
 
     np.random.seed(101)
     indices = np.random.choice(test_labels.shape[0], 1000, replace=False)
