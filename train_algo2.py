@@ -80,6 +80,9 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         architecture, datasets.input_dims[dataset], beta=beta, M=M
     )
 
+    model.build(input_shape=(BATCH_SIZE, *datasets.input_dims[dataset]))
+    model.summary()
+
     metric_labels = ["loss", "I_YZ", "I_XZ"]
     acc_labels = ["accuracy_L1", "accuracy_L12"]
     lr_labels = list(map(lambda x: f"lr_{x}", range(len(optimizers))))
