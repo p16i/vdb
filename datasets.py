@@ -14,7 +14,39 @@ dataset_size = {
     "cifar10": (50000, 10000),
 }
 
+def subset_dataset_parsing(name):
+    name, subset_size = name.split("-")
+
+    return name, int(subset_size.replace("k", "000"))
+
 def get_dataset(name):
+    if name in [
+            'cifar10-10k', 'cifar10-40k',
+            'fashion_mnist-10k', 'fashion_mnist-40k'
+        ]:
+
+        subset_name = name
+        name, subset_size = subset_dataset_parsing(subset_name)
+
+        dataset_size[subset_name] = dataset_size[name]
+        input_dims[subset_name] = input_dims[name]
+
+        (train_images, train_labels), \
+        (test_images, test_labels), \
+        (selected_images, selected_labels) = get_dataset(name)
+
+        chosen_ix = np.random.choice(
+            range(train_images.shape[0]),
+            subset_size,
+            replace=False
+        )
+
+        train_images, train_labels = train_images[chosen_ix, :], train_labels[chosen_ix]
+
+        return (train_images, train_labels), \
+            (test_images, test_labels), \
+            (selected_images, selected_labels)
+
     ds_method = getattr(tf.keras.datasets, name)
     (train_images, train_labels), (test_images, test_labels) = ds_method.load_data()
 
