@@ -114,7 +114,7 @@ def train_algo2(
                 batch, optimizers[1], M
             )
 
-            opt_params["current_k"] -= opt_params['e']
+            opt_params["current_k"] = opt_params['e']
         m.update_state(metrics)
 
         x, y = batch
