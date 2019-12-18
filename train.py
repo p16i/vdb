@@ -40,7 +40,7 @@ BATCH_SIZE = 100 # todo: keep it fixed for now
 metric_labels = ["loss", "I_YZ", "I_XZ"]
 acc_labels = ["accuracy_L1", "accuracy_L12"]
 
-def evaluate(model, test_dataset, tsb_writer, M):
+def evaluate(model, test_dataset, tsb_writer, M, epoch):
     m = tf.keras.metrics.MeanTensor("test_metrics")
     am = tf.keras.metrics.MeanTensor("test_acc_metrics")
     for batch in test_dataset:
@@ -56,6 +56,7 @@ def evaluate(model, test_dataset, tsb_writer, M):
 
     m = m.result().numpy()
     am = am.result().numpy()
+
     print(utils.format_metrics("Test", m, am))
     tfutils.log_metrics(tsb_writer, metric_labels, m, epoch)
     tfutils.log_metrics(tsb_writer, acc_labels, am, epoch)
@@ -65,7 +66,7 @@ def evaluate(model, test_dataset, tsb_writer, M):
 
 def train_algo1(
         model, optimizers, train_dataset, tsb_writer, M,
-        lr_labels, strategy_name, opt_params
+        lr_labels, strategy_name, opt_params, epoch
     ):
     apply_gradient_func = getattr(losses, f"compute_apply_{strategy_name}_gradients")
 
@@ -91,7 +92,7 @@ def train_algo1(
 
 def train_algo2(
         model, optimizers, train_dataset, tsb_writer, M,
-        lr_labels, strategy_name, opt_params
+        lr_labels, strategy_name, opt_params, epoch
     ):
 
     if "current_k" not in opt_params:
@@ -195,7 +196,8 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
             M,
             lr_labels,
             strategy_name,
-            opt_params
+            opt_params,
+            epoch
         )
 
         m = m.result().numpy()
@@ -216,7 +218,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         train_metrics = m.astype(float).tolist() + am.astype(float).tolist()
         end_time = time.time()
 
-        test_metrics = evaluate(model, test_dataset, test_summary_writer, M)
+        test_metrics = evaluate(model, test_dataset, test_summary_writer, M, epoch)
 
         print(f"--- Time elapse for current epoch {end_time - start_time}")
 
