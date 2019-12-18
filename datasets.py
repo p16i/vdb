@@ -60,7 +60,7 @@ def get_dataset(name):
     test_labels = test_labels.astype("int32").reshape(-1)
 
     ## Normalizing the images to the range of [-1, 1]
-    if name in ["mnist", "fashionmnist"]:
+    if name in ["mnist", "fashion_mnist"]:
         train_images = 2*(train_images / 255.) - 1
         test_images  = 2*(test_images / 255.) - 1
     elif name == "cifar10":
