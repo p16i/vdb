@@ -255,6 +255,8 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         print(summary)
         yaml.dump(summary, f, default_flow_style=False)
 
+    model.save_weights(f"{artifact_dir}/model")
+
     print(f"Please see artifact at: {artifact_dir}")
 
 if __name__ == "__main__":
