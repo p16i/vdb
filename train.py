@@ -17,6 +17,7 @@ Options:
 import time
 import os
 
+import json
 import yaml
 import numpy as np
 from docopt import docopt
@@ -36,6 +37,98 @@ import tfutils
 
 BATCH_SIZE = 100 # todo: keep it fixed for now
 
+metric_labels = ["loss", "I_YZ", "I_XZ"]
+acc_labels = ["accuracy_L1", "accuracy_L12"]
+
+def evaluate(model, test_dataset, tsb_writer, M, epoch):
+    m = tf.keras.metrics.MeanTensor("test_metrics")
+    am = tf.keras.metrics.MeanTensor("test_acc_metrics")
+    for batch in test_dataset:
+        metrics = losses.compute_loss(model, *batch, M)
+        m.update_state(metrics)
+        x, y = batch
+        am.update_state(
+            [
+                losses.compute_acc(model, x, y, 1),
+                losses.compute_acc(model, x, y, 12)
+            ]
+        )
+
+    m = m.result().numpy()
+    am = am.result().numpy()
+
+    print(utils.format_metrics("Test", m, am))
+    tfutils.log_metrics(tsb_writer, metric_labels, m, epoch)
+    tfutils.log_metrics(tsb_writer, acc_labels, am, epoch)
+
+    return m.astype(float).tolist() + am.astype(float).tolist()
+
+
+def train_algo1(
+        model, optimizers, train_dataset, tsb_writer, M,
+        lr_labels, strategy_name, opt_params, epoch
+    ):
+    apply_gradient_func = getattr(losses, f"compute_apply_{strategy_name}_gradients")
+
+    m = tf.keras.metrics.MeanTensor("train_metrics")
+    am = tf.keras.metrics.MeanTensor("train_acc_metrics")
+    for i, batch in enumerate(train_dataset):
+
+        metrics = apply_gradient_func(
+            model, batch, optimizers, epoch, opt_params, M
+        )
+        m.update_state(metrics)
+
+        x, y = batch
+        am.update_state(
+            [
+                losses.compute_acc(model, x, y, 1),
+                losses.compute_acc(model, x, y, 12)
+            ]
+        )
+
+    return m, am
+
+
+def train_algo2(
+        model, optimizers, train_dataset, tsb_writer, M,
+        lr_labels, strategy_name, opt_params, epoch
+    ):
+
+    if "current_k" not in opt_params:
+        opt_params["current_k"] = opt_params["e"]
+
+    m = tf.keras.metrics.MeanTensor("train_metrics")
+    am = tf.keras.metrics.MeanTensor("train_acc_metrics")
+    for i, batch in enumerate(train_dataset):
+
+        if opt_params["current_k"] > 0:
+            metrics = losses.compute_apply_gradients_algo2_enc(
+                model, model.encoder.trainable_variables,
+                batch, optimizers[0], M
+            )
+
+            opt_params["current_k"] -= 1
+        else:
+            metrics = losses.compute_apply_gradients_algo2_dec(
+                model, model.decoder.trainable_variables,
+                batch, optimizers[1], M
+            )
+
+            opt_params["current_k"] = opt_params['e']
+        m.update_state(metrics)
+
+        x, y = batch
+        am.update_state(
+            [
+                losses.compute_acc(model, x, y, 1),
+                losses.compute_acc(model, x, y, 12)
+            ]
+        )
+
+    return m, am
+
+
 def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     model_conf = model
 
@@ -44,10 +137,10 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     TRAIN_BUF, TEST_BUF = datasets.dataset_size[dataset]
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_set) \
-    .shuffle(TRAIN_BUF).batch(BATCH_SIZE)
+        .shuffle(TRAIN_BUF).batch(BATCH_SIZE)
 
     test_dataset = tf.data.Dataset.from_tensor_slices(test_set) \
-    .shuffle(TEST_BUF).batch(BATCH_SIZE)
+        .shuffle(TEST_BUF).batch(BATCH_SIZE)
     
     print(f"Training with {model} on {dataset} for {epochs} epochs (lr={initial_lr})")
     print(f"Params: beta={beta} M={M} lr={initial_lr} strategy={strategy}")
@@ -59,9 +152,10 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         BATCH_SIZE
     )
 
-    apply_gradient_func = getattr(losses, f"compute_apply_{strategy_name}_gradients")
-
-    experiment_name = utils.get_experiment_name(f"vdb-{dataset}")
+    network_name, architecture = model.split("/")
+    experiment_name = utils.get_experiment_name(
+        f"{network_name}-{dataset}"
+    )
 
     print(f"Experiment name: {experiment_name}")
     artifact_dir = f"{output_dir}/{experiment_name}"
@@ -74,41 +168,41 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     test_summary_writer = tf.summary.create_file_writer(test_log_dir)
 
     # Instantiate model
-    network_name, architecture = model.split("/")
     architecture = utils.parse_arch(architecture)
 
     model = nets.get_network(network_name)(
         architecture, datasets.input_dims[dataset], beta=beta, M=M
     )
 
-    metric_labels = ["loss", "I_YZ", "I_XZ"]
-    acc_labels = ["accuracy_L1", "accuracy_L12"]
+    model.build(input_shape=(BATCH_SIZE, *datasets.input_dims[dataset]))
+    model.summary()
+
     lr_labels = list(map(lambda x: f"lr_{x}", range(len(optimizers))))
+
+    train_step = train_algo2 if strategy[:3] == "alt"  else train_algo1
+
+    print("Using trainstep: ", train_step)
 
     for epoch in range(1, epochs + 1):
         start_time = time.time()
 
         print(f"Epoch {epoch}")
 
-        m = tf.keras.metrics.MeanTensor("train_metrics")
-        am = tf.keras.metrics.MeanTensor("train_acc_metrics")
-        for i, batch in enumerate(train_dataset):
-
-            metrics = apply_gradient_func(
-                model, batch, optimizers, epoch, opt_params, M
-            )
-            m.update_state(metrics)
-
-            x, y = batch
-            am.update_state(
-                [
-                    losses.compute_acc(model, x, y, 1),
-                    losses.compute_acc(model, x, y, 12)
-                ]
-            )
+        m, am = train_step(
+            model,
+            optimizers,
+            train_dataset,
+            train_summary_writer,
+            M,
+            lr_labels,
+            strategy_name,
+            opt_params,
+            epoch
+        )
 
         m = m.result().numpy()
         am = am.result().numpy()
+
         print(utils.format_metrics("Train", m, am))
 
         tfutils.log_metrics(train_summary_writer, metric_labels, m, epoch)
@@ -122,28 +216,9 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         )
 
         train_metrics = m.astype(float).tolist() + am.astype(float).tolist()
-
         end_time = time.time()
 
-        m = tf.keras.metrics.MeanTensor("test_metrics")
-        am = tf.keras.metrics.MeanTensor("test_acc_metrics")
-        for batch in test_dataset:
-            metrics = losses.compute_loss(model, *batch, M)
-            m.update_state(metrics)
-            x, y = batch
-            am.update_state(
-                [
-                    losses.compute_acc(model, x, y, 1),
-                    losses.compute_acc(model, x, y, 12)
-                ]
-            )
-
-        m = m.result().numpy()
-        am = am.result().numpy()
-        print(utils.format_metrics("Test", m, am))
-        tfutils.log_metrics(test_summary_writer, metric_labels, m, epoch)
-        tfutils.log_metrics(test_summary_writer, acc_labels, am, epoch)
-        test_metrics = m.astype(float).tolist() + am.astype(float).tolist()
+        test_metrics = evaluate(model, test_dataset, test_summary_writer, M, epoch)
 
         print(f"--- Time elapse for current epoch {end_time - start_time}")
 
@@ -167,6 +242,13 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
             small_set,
             title="Epoch=%d Strategy=%s  Beta=%f M=%f" % (epoch, strategy, beta, M),
             path=f"{artifact_dir}/latent-representation.png"
+        )
+
+    with train_summary_writer.as_default():
+        tf.summary.text(
+            "setting",
+            json.dumps(summary, sort_keys=True, indent=4),
+            step=0
         )
 
     with open(f"{artifact_dir}/summary.yml", 'w') as f:
