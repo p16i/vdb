@@ -1,6 +1,8 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 
+from losses import mean_softmax_from_logits
+
 class BaseNet(tf.keras.Model):
     @tf.function
     def sample(self, eps=None):
@@ -36,3 +38,12 @@ class BaseNet(tf.keras.Model):
         logits = tf.dtypes.cast(self.decode(z), tf.float64)
 
         return q_zgx, logits
+
+    @tf.function
+    def compute_acc(self, x, y, L):
+        _, logits = self.call(x, L=L)
+        mean_sm = mean_softmax_from_logits(logits)
+        pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
+        acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
+
+        return acc

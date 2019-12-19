@@ -77,3 +77,14 @@ def get_dataset(name):
     return (train_images, train_labels), \
         (test_images, test_labels), \
         (selected_images, selected_labels)
+
+def get_2d_samples(dataset):
+    _, (test_images, test_labels), _ = get_dataset(dataset)
+
+
+    data_ix = np.loadtxt(f"../datasets/{dataset}_2d_samples").astype(int)
+
+    images = test_images[data_ix]
+    labels = test_labels[data_ix]
+
+    return (test_images, test_labels), (images, labels)
