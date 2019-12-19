@@ -35,7 +35,8 @@ class Net(BaseNet):
 
         self.prior = tfp.distributions.Normal(0, 1)
 
-        self.compute_info_loss = losses.compute_info_loss_diag_cov
+        self.class_loss = losses.compute_vdb_class_loss_tf2
+        self.info_loss = losses.compute_info_loss_diag_cov
 
         self.beta = beta
         self.M = M
