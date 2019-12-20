@@ -69,10 +69,10 @@ def get_dataset(name):
     else:
         raise SystemError(f"No normalization implemented for {name}")
 
-    np.random.seed(101)
-    indices = np.random.choice(test_labels.shape[0], 1000, replace=False)
-    selected_labels = test_labels[indices]
-    selected_images = test_images[indices, :]
+    data_ix = np.loadtxt(f"../datasets/{dataset}_2d_samples").astype(int)
+
+    selected_images = test_images[data_ix]
+    selected_labels = test_labels[data_ix]
 
     return (train_images, train_labels), \
         (test_images, test_labels), \
@@ -80,7 +80,6 @@ def get_dataset(name):
 
 def get_2d_samples(dataset):
     _, (test_images, test_labels), _ = get_dataset(dataset)
-
 
     data_ix = np.loadtxt(f"../datasets/{dataset}_2d_samples").astype(int)
 
