@@ -19,7 +19,7 @@ def subset_dataset_parsing(name):
 
     return name, int(subset_size.replace("k", "000"))
 
-def get_dataset(name):
+def get_dataset(name, data_path="./datasets"):
     if name in [
             'cifar10-10k', 'cifar10-40k',
             'fashion_mnist-10k', 'fashion_mnist-40k'
@@ -69,7 +69,7 @@ def get_dataset(name):
     else:
         raise SystemError(f"No normalization implemented for {name}")
 
-    data_ix = np.loadtxt(f"./datasets/{name}_2d_samples").astype(int)
+    data_ix = np.loadtxt(f"{data_path}/{name}_2d_samples").astype(int)
 
     selected_images = test_images[data_ix]
     selected_labels = test_labels[data_ix]
