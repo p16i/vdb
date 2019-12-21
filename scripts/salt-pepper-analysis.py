@@ -12,7 +12,6 @@ from docopt import docopt
 import glob
 import yaml
 
-from tqdm import tqdm
 import numpy as np
 
 import tensorflow as tf
@@ -76,6 +75,6 @@ if __name__ == "__main__":
 
     print(f"We have {len(models)} models.")
 
-    for  model in tqdm(models):
+    for  model in models:
         path = "/".join(model.split("/")[:-1])
         salt_pepper_analysis(path, probs)
