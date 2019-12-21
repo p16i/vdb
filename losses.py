@@ -128,10 +128,8 @@ def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params,
         metrics = compute_loss(model, x, y, M)
         loss = metrics[0]
 
-    gradients = tape.gradient(
-        loss,
-        model.encoder.trainable_variables + model.decoder.trainable_variables
-    )
+    gradients = tape.gradient(loss, model.trainable_variables)
+
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
     return metrics
