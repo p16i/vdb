@@ -11,7 +11,7 @@ class Net(BaseNet):
     """
 
     def __init__(self, architecture, in_shape, num_class, cov_type,  batch_norm=True, beta=1e-3, M=1):
-        super(Net, self).__init__(architecture, cov_type)
+        super(Net, self).__init__(architecture, cov_type, num_class, beta, M)
 
         self.encoder = tf.keras.Sequential(
             [
