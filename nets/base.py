@@ -32,12 +32,11 @@ class BaseNet(tf.keras.Model):
             self.info_loss = compute_info_loss_full_cov
 
             self._build_z_dist = _build_multivariate_normal_with_full_cov
+        else:
+            NotImplementedError("{cov_type} not implemented")
 
         print(f"Latent dims: {self.latent_dim}")
         print(f"Parameters for latent: {self.parameters_for_latent}")
-
-        else:
-            NotImplementedError("{cov_type} not implemented")
 
         self.beta = beta
         self.M = M
