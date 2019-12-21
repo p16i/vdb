@@ -72,8 +72,15 @@ def get_dataset(name, data_path="./datasets"):
         train_images = 2*(train_images / 255.) - 1
         test_images  = 2*(test_images / 255.) - 1
     elif name == "cifar10":
-        train_images = tf.image.per_image_standardization(train_images).numpy()
-        test_images = tf.image.per_image_standardization(test_images).numpy()
+        train_images /= 255.
+        test_images /= 255.
+
+        mean, std = np.mean(train_images, axis=(0, 1, 2)), \
+            np.std(train_images, axis=(0, 1, 2))
+
+        train_images = (train_images - mean) / std
+        test_images = (test_images - mean) / std
+
     else:
         raise SystemError(f"No normalization implemented for {name}")
 
