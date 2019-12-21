@@ -8,6 +8,12 @@ input_dims = {
     "cifar10": (32, 32, 3)
 }
 
+num_classes = {
+    "mnist": 10,
+    "fashion_mnist": 10,
+    "cifar10": 10,
+}
+
 dataset_size = {
     "mnist": (60000, 10000),
     "fashion_mnist": (60000, 10000),
@@ -30,6 +36,8 @@ def get_dataset(name, data_path="./datasets"):
 
         dataset_size[subset_name] = dataset_size[name]
         input_dims[subset_name] = input_dims[name]
+        num_classes[subset_name] = num_classes[name]
+
 
         (train_images, train_labels), \
         (test_images, test_labels), \

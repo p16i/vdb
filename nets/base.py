@@ -4,7 +4,7 @@ import tensorflow_probability as tfp
 from losses import mean_softmax_from_logits, compute_info_loss_diag_cov, compute_info_loss_full_cov
 
 class BaseNet(tf.keras.Model):
-    def __init__(self, architecture, cov_type):
+    def __init__(self, architecture, cov_type, num_class, beta, M):
         super(BaseNet, self).__init__()
 
         # this will be used by all architectures inheriting BaseNet
@@ -33,11 +33,18 @@ class BaseNet(tf.keras.Model):
 
             self._build_z_dist = _build_multivariate_normal_with_full_cov
 
-            # todo: encode, info_loss
         else:
             NotImplementedError("{cov_type} not implemented")
 
+        self.beta = beta
+        self.M = M
 
+        self.decoder = tf.keras.Sequential(
+            [
+                tf.keras.layers.InputLayer(input_shape=(self.latent_dim,)),
+                tf.keras.layers.Dense(units=num_class),
+            ]
+        )
     
     def encode(self, x):
         entries = self.encoder(x)

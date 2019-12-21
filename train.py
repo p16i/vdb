@@ -173,7 +173,10 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, cla
     architecture = utils.parse_arch(architecture)
 
     model = nets.get_network(network_name)(
-        architecture, datasets.input_dims[dataset], cov_type,
+        architecture,
+        datasets.input_dims[dataset],
+        datasets.num_classes[dataset],
+        cov_type,
         beta=beta, M=M
     )
 

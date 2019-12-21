@@ -10,35 +10,15 @@ class Net(BaseNet):
     ResNet20 implementation based on https://github.com/akamaster/pytorch_resnet_cifar10
     """
 
-    def __init__(self, architecture, in_shape, cov_type,  batch_norm=True, beta=1e-3, M=1):
+    def __init__(self, architecture, in_shape, num_class, cov_type,  batch_norm=True, beta=1e-3, M=1):
         super(Net, self).__init__(architecture, cov_type)
 
-        latent_dim = architecture["z"]
-        self.latent_dim = latent_dim
-
-        out_dim = 10
-
-        self.out_dim = out_dim
         self.encoder = tf.keras.Sequential(
             [
                 ResNet(BasicBlock, [3, 3, 3], num_classes=out_dim, batch_norm=batch_norm),
-                tf.keras.layers.Dense(latent_dim + latent_dim),
+                tf.keras.layers.Dense(self.parameters_for_latent),
             ]
         )
-
-        self.decoder = tf.keras.Sequential(
-            [
-                tf.keras.layers.InputLayer(input_shape=(latent_dim,)),
-                tf.keras.layers.Dense(units=out_dim),
-            ]
-        )
-
-        self.prior = tfp.distributions.Normal(0, 1)
-
-        self.info_loss = losses.compute_info_loss_diag_cov
-
-        self.beta = beta
-        self.M = M
 
 class ResNet(tf.keras.Model):
     def __init__(self, block, num_blocks, num_classes=10, batch_norm=True):
