@@ -15,7 +15,7 @@ class Net(BaseNet):
 
         self.encoder = tf.keras.Sequential(
             [
-                ResNet(BasicBlock, [3, 3, 3], num_classes=out_dim, batch_norm=batch_norm),
+                ResNet(BasicBlock, [3, 3, 3], num_classes=num_class, batch_norm=batch_norm),
                 tf.keras.layers.Dense(self.parameters_for_latent),
             ]
         )
