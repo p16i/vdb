@@ -68,7 +68,7 @@ def compute_vib_class_loss(logits, y):
     return class_loss_float64
 
 @tf.function
-def compute_vdb_class_loss_tf2(logits, y):
+def compute_vdb_class_loss(logits, y):
     # shape: (batch_size, 10)
     one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
 
@@ -187,7 +187,7 @@ def compute_apply_gradients_algo2_enc(model, variables, batch, optimizer, M):
 def compute_apply_gradients_algo2_dec(model, variables, batch, optimizer, M):
     return compute_apply_gradients_variables(model, variables, batch, optimizer, M)
 
-def compute_class_loss_tf1(logits, y):
+def compute_vdb_class_loss_tf1(logits, y):
     # this is only for testing purposes.
     # logits's size = (M, Batch, 10)
     # y's size = (10,)
