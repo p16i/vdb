@@ -1,17 +1,19 @@
 """
 Usage:
-train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr> --output-dir=<output-dir>] --strategy=<strategy> --dataset=<dataset> <model>
+train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr> --output-dir=<output-dir> --class-loss=<class-loss> --cov-type=<cov-type>] --strategy=<strategy> --dataset=<dataset> <model>
 
 Options:
-  -h --help                 Show this screen.
-  --dataset=<dataset>       One from {mnist, fashion_mnist, cifar10} [default: mnist]
-  --beta=<beta>             Value of β [default: 0.001]
-  -M=<M>                    Value of M [default: 1]
-  --lr=<lr>                 Learning rate [default: 0.0001]
-  --epoch=<epoch>           Number of epochs [default: 200]
-  --strategy=<strategy>     Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
-                            "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
+  -h --help                   Show this screen.
+  --dataset=<dataset>         One from {mnist, fashion_mnist, cifar10} [default: mnist]
+  --beta=<beta>               Value of β [default: 0.001]
+  -M=<M>                      Value of M [default: 1]
+  --lr=<lr>                   Learning rate [default: 0.0001]
+  --epoch=<epoch>             Number of epochs [default: 200]
+  --strategy=<strategy>       Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
+                              "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
   --output-dir=<output-dir>   [default: ./artifacts]
+  --class-loss=<class-loss>   Class loss {vdb, vib} [default: vdb]
+  --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
 """
 
 import time
@@ -129,7 +131,7 @@ def train_algo2(
     return m, am
 
 
-def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
+def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, class_loss, cov_type):
     model_conf = model
 
     train_set, test_set, small_set = datasets.get_dataset(dataset)
@@ -154,7 +156,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
 
     network_name, architecture = model.split("/")
     experiment_name = utils.get_experiment_name(
-        f"{network_name}-{dataset}"
+        f"{network_name}-{class_loss}-{cov_type}-{dataset}"
     )
 
     print(f"Experiment name: {experiment_name}")
@@ -171,11 +173,15 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
     architecture = utils.parse_arch(architecture)
 
     model = nets.get_network(network_name)(
-        architecture, datasets.input_dims[dataset], beta=beta, M=M
+        architecture, datasets.input_dims[dataset], cov_type,
+        beta=beta, M=M
     )
 
     model.build(input_shape=(BATCH_SIZE, *datasets.input_dims[dataset]))
     model.summary()
+
+    print(f"Class loss: {class_loss}")
+    model.class_loss = getattr(losses, f"compute_{class_loss}_class_loss")
 
     lr_labels = list(map(lambda x: f"lr_{x}", range(len(optimizers))))
 
@@ -233,7 +239,9 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir):
         metrics=dict(
             train=dict(zip(metric_labels + acc_labels, train_metrics)),
             test=dict(zip(metric_labels + acc_labels, test_metrics)),
-        )
+        ),
+        class_loss=class_loss,
+        cov_type=cov_type
     )
 
     if model.latent_dim == 2:
@@ -271,5 +279,12 @@ if __name__ == "__main__":
     M = int(arguments["-M"])
     lr = float(arguments["--lr"])
     output_dir = arguments['--output-dir']
+    class_loss = arguments['--class-loss']
+    cov_type = arguments['--cov-type']
 
-    train(model, dataset, epoch, beta, M, lr, strategy, output_dir)
+    train(
+        model, dataset, epoch, beta, M, lr,
+        strategy, output_dir,
+        class_loss,
+        cov_type
+    )
