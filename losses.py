@@ -19,12 +19,13 @@ def get_lr(lr, dataset, batch_size):
     return lr
 
 def get_optimizer(strategy, lr, dataset, batch_size):
-    if strategy == "oneshot":
+    strategy_name = strategy.split("/")[0]
+    if strategy_name == "oneshot":
         print("using oneshot strategy")
         return [
             tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5)
         ], strategy, {}
-    elif strategy[:3] in ["seq", "alt"]:
+    elif strategy_name in ["algo1", "algo2"]:
         slugs = strategy.split("/")
         print(f"using {slugs[0]} strategy with {slugs[1]}")
 
@@ -33,6 +34,7 @@ def get_optimizer(strategy, lr, dataset, batch_size):
             tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
             tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
         ), slugs[0], utils.parse_arch(slugs[1])
+
 
 @tf.function
 def compute_acc(model, x, y, L):
@@ -135,7 +137,7 @@ def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params,
     return metrics
 
 @tf.function
-def compute_apply_seq_gradients(model, batch, optimizers, epoch, opt_params, M):
+def compute_apply_algo1_gradients(model, batch, optimizers, epoch, opt_params, M):
     enc_opt, dec_opt = optimizers
 
     with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:

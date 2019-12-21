@@ -9,8 +9,8 @@ Options:
   -M=<M>                      Value of M [default: 1]
   --lr=<lr>                   Learning rate [default: 0.0001]
   --epoch=<epoch>             Number of epochs [default: 200]
-  --strategy=<strategy>       Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
-                              "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
+  --strategy=<strategy>       Optimizaton strategy "oneshot" or "algo1/d:1|e:10" [default: oneshot]
+                              "algo1/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
   --output-dir=<output-dir>   [default: ./artifacts]
   --class-loss=<class-loss>   Class loss {vdb, vib} [default: vdb]
   --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
@@ -98,7 +98,7 @@ def train_algo2(
     ):
 
     if "current_k" not in opt_params:
-        opt_params["current_k"] = opt_params["e"]
+        opt_params["current_k"] = opt_params["k"]
 
     m = tf.keras.metrics.MeanTensor("train_metrics")
     am = tf.keras.metrics.MeanTensor("train_acc_metrics")
@@ -117,7 +117,7 @@ def train_algo2(
                 batch, optimizers[1], M
             )
 
-            opt_params["current_k"] = opt_params['e']
+            opt_params["current_k"] = opt_params["k"]
         m.update_state(metrics)
 
         x, y = batch
@@ -185,7 +185,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, cla
 
     lr_labels = list(map(lambda x: f"lr_{x}", range(len(optimizers))))
 
-    train_step = train_algo2 if strategy[:3] == "alt"  else train_algo1
+    train_step = train_algo2 if strategy.split("/")[0] == "algo2" else train_algo1
 
     print("Using trainstep: ", train_step)
 
@@ -270,7 +270,6 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, cla
 if __name__ == "__main__":
     arguments = docopt(__doc__, version="VDB Experiment 1.0")
 
-    # todo: write a function to do magic type cast
     model = arguments["<model>"]
     strategy = arguments["--strategy"]
     beta = float(arguments["--beta"])
