@@ -10,8 +10,8 @@ class Net(BaseNet):
     ResNet20 implementation based on https://github.com/akamaster/pytorch_resnet_cifar10
     """
 
-    def __init__(self, architecture, in_shape=None,  batch_norm=True, beta=1e-3, M=1):
-        super(Net, self).__init__()
+    def __init__(self, architecture, in_shape, cov_type,  batch_norm=True, beta=1e-3, M=1):
+        super(Net, self).__init__(architecture, cov_type)
 
         latent_dim = architecture["z"]
         self.latent_dim = latent_dim
@@ -35,21 +35,10 @@ class Net(BaseNet):
 
         self.prior = tfp.distributions.Normal(0, 1)
 
-        self.class_loss = losses.compute_vdb_class_loss_tf2
         self.info_loss = losses.compute_info_loss_diag_cov
 
         self.beta = beta
         self.M = M
-
-
-    def encode(self, x):
-        entries = self.encoder(x)
-        mean = entries[:, :self.latent_dim]
-        cov_entries = entries[:, self.latent_dim:]
-
-        cov_entries  = tf.nn.softplus(cov_entries - 5.)
-
-        return tfp.distributions.Normal(mean, cov_entries)
 
 class ResNet(tf.keras.Model):
     def __init__(self, block, num_blocks, num_classes=10, batch_norm=True):
