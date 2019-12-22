@@ -33,7 +33,7 @@ class BaseNet(tf.keras.Model):
 
             self._build_z_dist = _build_multivariate_normal_with_full_cov
         else:
-            NotImplementedError("{cov_type} not implemented")
+            raise NotImplementedError("{cov_type} not implemented")
 
         print(f"Latent dims: {self.latent_dim}")
         print(f"Parameters for latent: {self.parameters_for_latent}")
@@ -52,9 +52,6 @@ class BaseNet(tf.keras.Model):
         entries = self.encoder(x)
         mu = entries[:, :self.latent_dim]
         cov_entries = entries[:, self.latent_dim:]
-
-        # this bias -5 comes from VIB paper
-        cov_entries  = tf.nn.softplus(cov_entries - 5.)
 
         return self._build_z_dist(mu, cov_entries)
 
@@ -89,6 +86,9 @@ class BaseNet(tf.keras.Model):
 
 
 def _build_multivariate_normal_with_diag_cov(mu, cov_entries):
+    # this bias -5 comes from VIB paper
+    cov_entries  = tf.nn.softplus(cov_entries - 5.)
+
     return tfp.distributions.Normal(mu, cov_entries)
 
 def _build_multivariate_normal_with_full_cov(mu, cov_entries):
@@ -96,9 +96,9 @@ def _build_multivariate_normal_with_full_cov(mu, cov_entries):
 
     # build lower triangular matrix for Cholesky Decomposition
     tril_raw = tfp.math.fill_triangular(cov_entries)
-    diag_entries = tf.nn.softplus(tf.eye(latent_dim) * tril_raw)
+    diag_entries = tf.nn.softplus(tf.eye(latent_dim) * tril_raw - 5.)
 
-    factor = 0.01 # this factor comes from the VIB's paper
+    factor = 0.01 # this factor comes from the VIB paper
     off_diag_entries = (1-tf.eye(latent_dim)) * tril_raw * factor
 
     tril = diag_entries + off_diag_entries
