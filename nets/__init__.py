@@ -23,7 +23,10 @@ def load_model(path):
         model_cls = get_network(model_name)
         model = model_cls(
             model_config, input_shape,
-            summary['beta'], summary['M']
+            datasets.num_classes[summary["dataset"]],
+            summary["cov_type"],
+            summary['beta'],
+            summary['M']
         )
 
         model.load_weights(f"{path}/model")
