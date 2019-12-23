@@ -247,7 +247,8 @@ def train(
             test=dict(zip(metric_labels + acc_labels, test_metrics)),
         ),
         class_loss=class_loss,
-        cov_type=cov_type
+        cov_type=cov_type,
+        batch_size=batch_size,
     )
 
     if model.latent_dim == 2:
