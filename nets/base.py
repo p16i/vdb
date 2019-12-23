@@ -1,7 +1,9 @@
 import tensorflow as tf
 import tensorflow_probability as tfp
 
-from losses import mean_softmax_from_logits, compute_info_loss_diag_cov, compute_info_loss_full_cov
+from losses import compute_info_loss_diag_cov, \
+    compute_info_loss_full_cov, \
+    mean_softmax_from_logits
 
 class BaseNet(tf.keras.Model):
     def __init__(self, architecture, cov_type, num_class, beta, M):
@@ -48,24 +50,24 @@ class BaseNet(tf.keras.Model):
             ]
         )
     
-    def encode(self, x):
-        entries = self.encoder(x)
+    def encode(self, x, training=False):
+        entries = self.encoder(x, training=training)
         mu = entries[:, :self.latent_dim]
         cov_entries = entries[:, self.latent_dim:]
 
-        return self._build_z_dist(mu, cov_entries)
+        return mu, cov_entries
 
     @tf.function
-    def decode(self, z, apply_sigmoid=False):
+    def decode(self, z):
         logits = self.decoder(z)
-        if apply_sigmoid:
-            probs = tf.sigmoid(logits)
-            return probs
 
         return logits
 
-    def call(self, x, L=1):
-        q_zgx = self.encode(x)
+    @tf.function
+    def call(self, x, L=1, training=False):
+        mu, cov_entries = self.encode(x, training=training)
+
+        q_zgx = self._build_z_dist(mu, cov_entries)
 
         # shape: (M, batch_size, 10)
         z = q_zgx.sample(L)
@@ -73,8 +75,9 @@ class BaseNet(tf.keras.Model):
         # shape: (M, batch_size, 10)
         logits = tf.dtypes.cast(self.decode(z), tf.float64)
 
-        return q_zgx, logits
+        return (mu, cov_entries), logits
 
+    @tf.function
     def compute_acc(self, x, y, L, training=False):
         _, logits = self(x, L=L, training=training)
 
@@ -84,7 +87,6 @@ class BaseNet(tf.keras.Model):
         acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
 
         return acc
-
 
 def _build_multivariate_normal_with_diag_cov(mu, cov_entries):
     # this bias -5 comes from VIB paper

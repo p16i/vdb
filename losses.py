@@ -96,10 +96,13 @@ def compute_info_loss_full_cov(q_zgx, prior):
         dtype=tf.float64
     )
 
+
 @tf.function
 def compute_loss(model, x, y, M, training=False):
     # shape: (batch_size, 10)
-    q_zgx, logits = model(x, L=M, training=training)
+    (mu, cov_entries), logits = model(x, L=M, training=training)
+
+    q_zgx = model._build_z_dist(mu, cov_entries)
 
     class_loss = model.class_loss(logits, y)
     info_loss = model.info_loss(q_zgx, model.prior)

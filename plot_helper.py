@@ -50,7 +50,9 @@ def plot_2d_representation(model,
     ):
 
     images, labels = data
-    q_zgx = model.encode(images)
+    mu, cov_entries = model.encode(images)
+
+    q_zgx = model._build_z_dist(mu, cov_entries)
 
     mu = q_zgx.mean().numpy()
     cov = q_zgx.covariance().numpy()
