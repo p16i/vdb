@@ -84,7 +84,9 @@ if __name__ == "__main__":
 
             mean_acc = tf.keras.metrics.MeanTensor()
             for i, (x, y) in enumerate(ds):
-                accs = list(map(lambda l: model.compute_acc(x, y, l), Ls))
+                accs = list(
+                    map(lambda l: model.compute_acc(x, y, l, training=False), Ls)
+                )
                 mean_acc.update_state(accs)
 
             mean_acc = mean_acc.result().numpy()
