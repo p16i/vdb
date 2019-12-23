@@ -72,9 +72,6 @@ def get_dataset(name, data_path="./datasets"):
         train_images = 2*(train_images / 255.) - 1
         test_images  = 2*(test_images / 255.) - 1
 
-        # make sure *-mnist work with CNNs
-        train_images = np.expand_dims(train_images, 3)
-        test_images = np.expand_dims(test_images, 3)
     elif name == "cifar10":
         train_images /= 255.
         test_images /= 255.
