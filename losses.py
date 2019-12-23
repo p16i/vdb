@@ -35,16 +35,6 @@ def get_optimizer(strategy, lr, dataset, batch_size):
             tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
         ), slugs[0], utils.parse_arch(slugs[1])
 
-
-@tf.function
-def compute_acc(model, x, y, L):
-    _, logits = model(x, L=L)
-    mean_sm = mean_softmax_from_logits(logits)
-    pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
-    acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
-
-    return acc
-
 @tf.function
 def mean_softmax_from_logits(logits):
     # logit's shape: (M, batch_size, 10)
@@ -107,9 +97,9 @@ def compute_info_loss_full_cov(q_zgx, prior):
     )
 
 @tf.function
-def compute_loss(model, x, y, M):
+def compute_loss(model, x, y, M, training=False):
     # shape: (batch_size, 10)
-    q_zgx, logits = model(x, L=M)
+    q_zgx, logits = model(x, L=M, training=training)
 
     class_loss = model.class_loss(logits, y)
     info_loss = model.info_loss(q_zgx, model.prior)
@@ -120,12 +110,12 @@ def compute_loss(model, x, y, M):
     return class_loss + model.beta*info_loss, IZY_bound, IZX_bound
 
 @tf.function
-def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params, M):
+def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params, M, training=False):
     optimizer = optimizers[0]
 
     with tf.GradientTape() as tape:
         x, y = batch
-        metrics = compute_loss(model, x, y, M)
+        metrics = compute_loss(model, x, y, M, training=training)
         loss = metrics[0]
 
     gradients = tape.gradient(loss, model.trainable_variables)
@@ -135,12 +125,12 @@ def compute_apply_oneshot_gradients(model, batch, optimizers, epoch, opt_params,
     return metrics
 
 @tf.function
-def compute_apply_algo1_gradients(model, batch, optimizers, epoch, opt_params, M):
+def compute_apply_algo1_gradients(model, batch, optimizers, epoch, opt_params, M, training=False):
     enc_opt, dec_opt = optimizers
 
     with tf.GradientTape() as enc_tape, tf.GradientTape() as dec_tape:
         x, y = batch
-        metrics = compute_loss(model, x, y, M)
+        metrics = compute_loss(model, x, y, M, training=training)
         loss = metrics[0]
 
     if tf.equal(epoch % opt_params["d"], 0):
@@ -167,10 +157,10 @@ def compute_apply_algo1_gradients(model, batch, optimizers, epoch, opt_params, M
 
     return metrics
 
-def compute_apply_gradients_variables(model, variables, batch, optimizer, M):
+def compute_apply_gradients_variables(model, variables, batch, optimizer, M, training=False):
     with tf.GradientTape() as tape:
         x, y = batch
-        metrics = compute_loss(model, x, y, M)
+        metrics = compute_loss(model, x, y, M, training=training)
         loss = metrics[0]
 
     optimizer.apply_gradients(
@@ -180,12 +170,12 @@ def compute_apply_gradients_variables(model, variables, batch, optimizer, M):
     return metrics
 
 @tf.function
-def compute_apply_gradients_algo2_enc(model, variables, batch, optimizer, M):
-    return compute_apply_gradients_variables(model, variables, batch, optimizer, M)
+def compute_apply_gradients_algo2_enc(model, variables, batch, optimizer, M, training=False):
+    return compute_apply_gradients_variables(model, variables, batch, optimizer, M, training=training)
 
 @tf.function
-def compute_apply_gradients_algo2_dec(model, variables, batch, optimizer, M):
-    return compute_apply_gradients_variables(model, variables, batch, optimizer, M)
+def compute_apply_gradients_algo2_dec(model, variables, batch, optimizer, M, training=False):
+    return compute_apply_gradients_variables(model, variables, batch, optimizer, M, training=training)
 
 def compute_vdb_class_loss_tf1(logits, y):
     # this is only for testing purposes.

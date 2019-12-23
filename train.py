@@ -46,13 +46,13 @@ def evaluate(model, test_dataset, tsb_writer, M, epoch):
     m = tf.keras.metrics.MeanTensor("test_metrics")
     am = tf.keras.metrics.MeanTensor("test_acc_metrics")
     for batch in test_dataset:
-        metrics = losses.compute_loss(model, *batch, M)
+        metrics = losses.compute_loss(model, *batch, M, training=False)
         m.update_state(metrics)
         x, y = batch
         am.update_state(
             [
-                losses.compute_acc(model, x, y, 1),
-                losses.compute_acc(model, x, y, 12)
+                model.compute_acc(x, y, 1, training=False),
+                model.compute_acc(x, y, 12, training=False)
             ]
         )
 
@@ -77,15 +77,15 @@ def train_algo1(
     for i, batch in enumerate(train_dataset):
 
         metrics = apply_gradient_func(
-            model, batch, optimizers, epoch, opt_params, M
+            model, batch, optimizers, epoch, opt_params, M, training=True
         )
         m.update_state(metrics)
 
         x, y = batch
         am.update_state(
             [
-                losses.compute_acc(model, x, y, 1),
-                losses.compute_acc(model, x, y, 12)
+                model.compute_acc(x, y, 1, training=True),
+                model.compute_acc(x, y, 12, training=True)
             ]
         )
 
@@ -107,14 +107,14 @@ def train_algo2(
         if opt_params["current_k"] > 0:
             metrics = losses.compute_apply_gradients_algo2_enc(
                 model, model.encoder.trainable_variables,
-                batch, optimizers[0], M
+                batch, optimizers[0], M, training=True
             )
 
             opt_params["current_k"] -= 1
         else:
             metrics = losses.compute_apply_gradients_algo2_dec(
                 model, model.decoder.trainable_variables,
-                batch, optimizers[1], M
+                batch, optimizers[1], M, training=True
             )
 
             opt_params["current_k"] = opt_params["k"]
@@ -123,8 +123,8 @@ def train_algo2(
         x, y = batch
         am.update_state(
             [
-                losses.compute_acc(model, x, y, 1),
-                losses.compute_acc(model, x, y, 12)
+                model.compute_acc(x, y, 1, training=True),
+                model.compute_acc(x, y, 12, training=True)
             ]
         )
 

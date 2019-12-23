@@ -76,9 +76,11 @@ class BaseNet(tf.keras.Model):
         return q_zgx, logits
 
     @tf.function
-    def compute_acc(self, x, y, L):
-        _, logits = self.call(x, L=L)
+    def compute_acc(self, x, y, L, training=False):
+        _, logits = self(x, L=L, training=training)
+
         mean_sm = mean_softmax_from_logits(logits)
+
         pred = tf.dtypes.cast(tf.math.argmax(mean_sm, axis=1), tf.int32)
         acc = tf.reduce_mean(tf.cast(tf.equal(pred, y), tf.float32))
 
