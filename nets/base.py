@@ -75,7 +75,6 @@ class BaseNet(tf.keras.Model):
 
         return q_zgx, logits
 
-    @tf.function
     def compute_acc(self, x, y, L, training=False):
         _, logits = self(x, L=L, training=training)
 
