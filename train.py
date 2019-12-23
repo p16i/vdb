@@ -1,6 +1,6 @@
 """
 Usage:
-train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr> --output-dir=<output-dir> --class-loss=<class-loss> --cov-type=<cov-type>] --strategy=<strategy> --dataset=<dataset> <model>
+train.py  [--batch-size=<batch-size> --epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr> --output-dir=<output-dir> --class-loss=<class-loss> --cov-type=<cov-type>] --strategy=<strategy> --dataset=<dataset> <model>
 
 Options:
   -h --help                   Show this screen.
@@ -14,6 +14,7 @@ Options:
   --output-dir=<output-dir>   [default: ./artifacts]
   --class-loss=<class-loss>   Class loss {vdb, vib} [default: vdb]
   --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
+  --batch-size=<batch-size>   Batch size [default: 100]
 """
 
 import time
@@ -36,8 +37,6 @@ import losses
 import plot_helper
 import utils
 import tfutils
-
-BATCH_SIZE = 100 # todo: keep it fixed for now
 
 metric_labels = ["loss", "I_YZ", "I_XZ"]
 acc_labels = ["accuracy_L1", "accuracy_L12"]
@@ -131,7 +130,11 @@ def train_algo2(
     return m, am
 
 
-def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, class_loss, cov_type):
+def train(
+        model, dataset, epochs, batch_size, beta, M,
+        initial_lr, strategy, output_dir, class_loss, cov_type
+    ):
+
     model_conf = model
 
     train_set, test_set, small_set = datasets.get_dataset(dataset)
@@ -139,19 +142,19 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, cla
     TRAIN_BUF, TEST_BUF = datasets.dataset_size[dataset]
 
     train_dataset = tf.data.Dataset.from_tensor_slices(train_set) \
-        .shuffle(TRAIN_BUF).batch(BATCH_SIZE)
+        .shuffle(TRAIN_BUF).batch(batch_size)
 
     test_dataset = tf.data.Dataset.from_tensor_slices(test_set) \
-        .shuffle(TEST_BUF).batch(BATCH_SIZE)
+        .shuffle(TEST_BUF).batch(batch_size)
     
     print(f"Training with {model} on {dataset} for {epochs} epochs (lr={initial_lr})")
-    print(f"Params: beta={beta} M={M} lr={initial_lr} strategy={strategy}")
+    print(f"Params: batch-size={batch_size} beta={beta} M={M} lr={initial_lr} strategy={strategy}")
 
     optimizers, strategy_name, opt_params = losses.get_optimizer(
         strategy,
         lr,
         dataset,
-        BATCH_SIZE
+        batch_size
     )
 
     network_name, architecture = model.split("/")
@@ -180,7 +183,7 @@ def train(model, dataset, epochs, beta, M, initial_lr, strategy, output_dir, cla
         beta=beta, M=M
     )
 
-    model.build(input_shape=(BATCH_SIZE, *datasets.input_dims[dataset]))
+    model.build(input_shape=(batch_size, *datasets.input_dims[dataset]))
     model.summary()
 
     print(f"Class loss: {class_loss}")
@@ -283,9 +286,10 @@ if __name__ == "__main__":
     output_dir = arguments['--output-dir']
     class_loss = arguments['--class-loss']
     cov_type = arguments['--cov-type']
+    batch_size = int(arguments['--batch-size'])
 
     train(
-        model, dataset, epoch, beta, M, lr,
+        model, dataset, epoch, batch_size, beta, M, lr,
         strategy, output_dir,
         class_loss,
         cov_type
