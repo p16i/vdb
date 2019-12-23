@@ -16,25 +16,28 @@ class Net(BaseNet):
         self.encoder = tf.keras.Sequential(
             [
                 ResNet(BasicBlock, [3, 3, 3],
-                num_classes=self.parameters_for_latent,
+                output_dim=self.parameters_for_latent,
                 batch_norm=batch_norm),
             ]
         )
 
 class ResNet(tf.keras.Model):
-    def __init__(self, block, num_blocks, num_classes=10, batch_norm=True):
+    def __init__(self, block, num_blocks, output_dim=10, batch_norm=True):
         super(ResNet, self).__init__()
         self.batch_norm = batch_norm
         self.in_planes = 16
 
         self.pad1 = tf.keras.layers.ZeroPadding2D((1, 1))
-        self.conv1 = tf.keras.layers.Conv2D(self.in_planes, kernel_size=3, strides=1, padding="SAME", use_bias=False, kernel_initializer="he_normal")
+        self.conv1 = tf.keras.layers.Conv2D(
+            self.in_planes, kernel_size=3, strides=1,
+            padding="SAME", use_bias=False
+        )
         self.bn1 = tf.keras.layers.BatchNormalization()
 
         self.layer1 = self._make_layer(block, 16, num_blocks[0], stride=1, batch_norm=batch_norm)
         self.layer2 = self._make_layer(block, 32, num_blocks[1], stride=2, batch_norm=batch_norm)
         self.layer3 = self._make_layer(block, 64, num_blocks[2], stride=2, batch_norm=batch_norm)
-        self.fcout =  tf.keras.layers.Dense(num_classes)
+        self.fcout =  tf.keras.layers.Dense(output_dim)
 
     def _make_layer(self, block, planes, num_blocks, stride, batch_norm):
         strides = [stride] + [1] * (num_blocks - 1)
@@ -72,10 +75,18 @@ class BasicBlock(tf.keras.Model):
 
         self.stride = stride
         
-        self.conv1 = tf.keras.layers.Conv2D(planes, kernel_size=3, strides=stride, padding="SAME", use_bias=False, kernel_initializer="he_normal")
+        self.conv1 = tf.keras.layers.Conv2D(
+            planes, kernel_size=3, strides=stride, padding="SAME",
+            use_bias=False,
+        )
+
         self.bn1 = tf.keras.layers.BatchNormalization()
         self.padding = tf.keras.layers.ZeroPadding2D(1)
-        self.conv2 = tf.keras.layers.Conv2D(planes, kernel_size=3, strides=1, padding="VALID", use_bias=False, kernel_initializer="he_normal")
+
+        self.conv2 = tf.keras.layers.Conv2D(
+            planes, kernel_size=3, strides=1, padding="VALID",
+            use_bias=False
+        )
         self.bn2 = tf.keras.layers.BatchNormalization()
 
         self.shortcut = tf.keras.Sequential()
