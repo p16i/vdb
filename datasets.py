@@ -20,6 +20,19 @@ dataset_size = {
     "cifar10": (50000, 10000),
 }
 
+cifar10_statistics = dict(
+    mean=(0.4914009, 0.48215896, 0.4465308),
+    std=(0.24703279, 0.24348423, 0.26158753)
+)
+
+def normalization_mnist(x):
+    return 2*(x / 255.) - 1
+
+def normalization_cifar10(x):
+    x = x / 255.
+
+    return (x - cifar10_statistics["mean"]) / cifar10_statistics["std"]
+
 def subset_dataset_parsing(name):
     name, subset_size = name.split("-")
 
@@ -69,18 +82,12 @@ def get_dataset(name, data_path="./datasets"):
 
     ## Normalizing the images to the range of [-1, 1]
     if name in ["mnist", "fashion_mnist"]:
-        train_images = 2*(train_images / 255.) - 1
-        test_images  = 2*(test_images / 255.) - 1
+        train_images = normalization_mnist(train_images)
+        test_images = normalization_mnist(test_images)
 
     elif name == "cifar10":
-        train_images /= 255.
-        test_images /= 255.
-
-        mean, std = np.mean(train_images, axis=(0, 1, 2)), \
-            np.std(train_images, axis=(0, 1, 2))
-
-        train_images = (train_images - mean) / std
-        test_images = (test_images - mean) / std
+        train_images = normalization_cifar10(train_images)
+        test_images = normalization_cifar10(test_images)
 
     else:
         raise SystemError(f"No normalization implemented for {name}")
