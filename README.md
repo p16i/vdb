@@ -60,6 +60,10 @@ Analyssis scripts locate in `./scripts/*-analysis.py`. These scripts load traine
 
 In general, these scripts take models from a path specified by the user. Wildcard can be used in this path. Please use `-h` option for further details of each command.
 
+#### Example
+Running the command below will take models from the directory and compute CIFAR10-C accuracies accordingly.
+
+```./pyrun.sh ./scripts/cifar10c-analysis.py "./artifacts/experiment-robustness-cifar10-beta03/*/*"```
 
 ## Experiment Artifacts
 Each experiment is assigned with a unique name:
