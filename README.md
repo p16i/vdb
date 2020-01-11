@@ -4,7 +4,7 @@
 Please run `pip install -r requirements.txt` for installing all depedencies.
 
 ## Project Structures
-### CLI
+### Training CLI
 `train.py` provides the training CLI. Below is its usage:
 ```
 Usage:
@@ -22,6 +22,20 @@ Options:
   --class-loss=<class-loss>   Class loss {vdb, vib} [default: vdb]
   --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
   --batch-size=<batch-size>   Batch size [default: 100]
+```
+
+#### Example
+
+```
+python train.py --epoch 5 \
+ --strategy="algo1/d:10|e:1" \
+ --dataset cifar10 \
+ -M 1 \
+ --class-los vdb \
+ --cov-type full \
+ --batch-size 256 \
+ --lr 0.0001 \
+ "mlp/e1:24|e2:24|z:20" 
 ```
 
 ### Running Unit tests
