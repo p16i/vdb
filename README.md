@@ -68,8 +68,8 @@ Analyssis scripts locate in `./scripts/*-analysis.py`. These scripts load traine
 
 | Script Name | Applicable Models | Remark |
 |:----:|:-----:|:----|
-| cifar10c | CIFAR | Required CIFAR10-C to be at `./datasets` |
-| mnistc | MNIST | Required MNIST-C to be at `./datasets` |
+| cifar10c | CIFAR10 | Required CIFAR10-C to be at `./datasets/CIFAR-10-C` |
+| mnistc | MNIST | Required MNIST-C to be at `./datasets/mnist_c` |
 | salt pepper noise | MNIST, FashionMNIST |
 
 In general, these scripts take models from a path specified by the user. Wildcard can be used in this path. Please use `-h` option for further details of each command.
