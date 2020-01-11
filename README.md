@@ -11,14 +11,17 @@ Usage:
 train.py  [--epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr>] --strategy=<strategy> --dataset=<dataset> <model>
 
 Options:
-  -h --help                 Show this screen.
-  --dataset=<dataset>       One from {mnist, fashion_mnist, cifar10} [default: mnist]
-  --beta=<beta>             Value of β [default: 0.001]
-  -M=<M>                    Value of M [default: 1]
-  --lr=<lr>                 Learning rate [default: 0.001]
-  --epoch=<epoch>           Number of epochs [default: 10]
-  --strategy=<strategy>     Optimizaton strategy "oneshot" or "seq/d:1|e:10" [default: oneshot]
-                            "seq/e:10|d:1" means "decoder get update every epoch while 10 for encoder".
+  -h --help                   Show this screen.
+  --dataset=<dataset>         One from {mnist, fashion_mnist, cifar10} [default: mnist]
+  --beta=<beta>               Value of β [default: 0.001]
+  -M=<M>                      Value of M [default: 1]
+  --lr=<lr>                   Learning rate [default: 0.001]
+  --epoch=<epoch>             Number of epochs [default: 10]
+  --strategy=<strategy>       Optimizaton strategy. See README.md for more details.
+  --output-dir=<output-dir>   [default: ./artifacts]
+  --class-loss=<class-loss>   Class loss {vdb, vib} [default: vdb]
+  --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
+  --batch-size=<batch-size>   Batch size [default: 100]
 ```
 
 ### Running Unit tests
@@ -31,20 +34,40 @@ pytest tests.py
 
 ### Core Modules
 - `nets/*` contains the details of our models, i.e. how its architecture and computation look like. These architectures include
-  - `vdb`: MLP with diagonal covariance matrix
-  - `vdb_fcov`: MLP with full covariance matrix.
+  - `base`: abstract architecture.
+  - `mlp`: 2-layer MLP, based on what described in the VIB paper.
+    - Usage: `mlp/e1:24|e2:24|z:20` (20 latent dimensions)
+  - `resnet20`:
+    - Usage: `resnet20/z:2` (2 latent dimensions)
 - `losses.py` contains the IB loss function and the implementations of optimization strategies:
   - oneshot
   - sequential
-- `datasets.py` provides a function to get any dataset from Keras based on `name`.
+- `datasets.py` provides a function to get any dataset from Keras based on `name`. Datasets we have include MNIST, FashionMNIST, and CIFAR10.
 
 ### Utility Modules
 - `plot_helper.py`
 - `tfutils.py`
 - `utils.py`
 
+### Analysis Scripts
+Analyssis scripts locate in `./scripts/*-analysis.py`. These scripts load trained models and perform analysis accordingly. Results of the analysises are saved to files, which are loaded and visualized in Jupyter notebooks. 
+
+| Script Name | Applicable Models |
+|:----:|:-----:|
+| cifar10c | CIFAR |
+| mnistc | MNIST |
+| salt pepper noise | MNIST, FashionMNIST |
+
+In general, these scripts take models from a path specified by the user. Wildcard can be used in this path. 
+
+
 ## Experiment Artifacts
-Each experiment is assigned with a unique name `vdb-<dataset>--<timestamp>`. 
+Each experiment is assigned with a unique name:
+
+```
+<architecture>-<class_loss>-<cov_type>-<dataset>--<timestamp>
+```
+
 During training, we collect metrics to TensorBoard under `log` directory. These metrics include:
 - loss
 - accuracy
