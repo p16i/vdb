@@ -52,13 +52,13 @@ pytest tests.py
 ### Analysis Scripts
 Analyssis scripts locate in `./scripts/*-analysis.py`. These scripts load trained models and perform analysis accordingly. Results of the analysises are saved to files, which are loaded and visualized in Jupyter notebooks. 
 
-| Script Name | Applicable Models |
-|:----:|:-----:|
-| cifar10c | CIFAR |
-| mnistc | MNIST |
+| Script Name | Applicable Models | Remark |
+|:----:|:-----:|:----|
+| cifar10c | CIFAR | Required CIFAR10-C to be at `./datasets` |
+| mnistc | MNIST | Required MNIST-C to be at `./datasets` |
 | salt pepper noise | MNIST, FashionMNIST |
 
-In general, these scripts take models from a path specified by the user. Wildcard can be used in this path. 
+In general, these scripts take models from a path specified by the user. Wildcard can be used in this path. Please use `-h` option for further details of each command.
 
 
 ## Experiment Artifacts
@@ -77,3 +77,10 @@ During training, we collect metrics to TensorBoard under `log` directory. These 
 When the bottleneck dimensions is `2`, we also plot the latent representation for 1000 test samples to TensorBoard.
 
 We also save the details of each experiment in `summary.yml`.
+
+
+## References
+- [Alemi et al. (2016), Variational Information Bottleneck](https://arxiv.org/abs/1612.00410)
+- [Cvitkovic et al. (2019), Minimal Achievable Sufficient Statistic Learning](https://arxiv.org/abs/1905.07822)
+- [Mu et al. (2019), MNISTC](https://arxiv.org/abs/1906.02337)
+- [Hendrycks et al. (2019), CIFAR10-C](https://zenodo.org/record/2535967)
