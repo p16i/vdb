@@ -1,39 +1,81 @@
 import math
 
+import numpy as np
+
 import tensorflow as tf
 import tensorflow_probability as tfp
 
 import datasets
 import utils
 
-def get_lr(lr, dataset, batch_size):
-    # if decay:
-    #     print("Using learning rate decay")
-    #     return tf.keras.optimizers.schedules.ExponentialDecay(
-    #         lr,
-    #         decay_steps=2*int(datasets.dataset_size[dataset][0] / batch_size),
-    #         decay_rate=0.97,
-    #         staircase=True
-    #     )
-    # else:
-    return lr
+def get_lr(lr, dataset, batch_size, schedule_mode="constant", step_factor=1):
+    steps_per_epoch = int(datasets.dataset_size[dataset][0] / batch_size)
 
-def get_optimizer(strategy, lr, dataset, batch_size):
+    if schedule_mode == "constant":
+        return lr
+    elif schedule_mode == "keras_resnet20_cifar10":
+        # ref: https://keras.io/examples/cifar10_resnet/
+        values = [1e-3]
+        for s in [1e-1, 1e-2, 1e-3, 0.5e-3]:
+            values.append(s*values[-1])
+        print(values)
+        return tf.keras.optimizers.schedules.PiecewiseConstantDecay(
+            (np.array([2, 120, 160, 180]) * steps_per_epoch / step_factor).tolist(),
+            values
+        )
+    elif schedule_mode == "alemi_vib_mnist":
+        # ref: https://github.com/alexalemi/vib_demo/blob/master/MNISTVIB.ipynb
+        return tf.keras.optimizers.schedules.ExponentialDecay(
+            lr,
+            decay_steps=2*steps_per_epoch,
+            decay_rate=0.97,
+            staircase=True
+        )
+    else:
+        raise ValueError(f"no lr_schedule: {schedule_mode}")
+
+def get_optimizer(strategy, lr, lr_schedule, dataset, batch_size):
     strategy_name = strategy.split("/")[0]
     if strategy_name == "oneshot":
         print("using oneshot strategy")
         return [
-            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5)
+            # this parameter from  https://github.com/alexalemi/vib_demo/blob/master/MNISTVIB.ipynb
+            tf.keras.optimizers.Adam(lr, 0.5)
         ], strategy, {}
-    elif strategy_name in ["algo1", "algo2"]:
+    elif strategy == "algo1":
         slugs = strategy.split("/")
         print(f"using {slugs[0]} strategy with {slugs[1]}")
 
+        opt_params = utils.parse_arch(slugs[1])
+
+        if lr_schedule != "constant":
+            raise ValueError(f"{strategy_name} is not yet supported lr_schedule")
+
+        lr = get_lr(lr, dataset, batch_size, schedule_mode=lr_schedule)
+
         # one for encoder and decoder
         return (
-            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
-            tf.keras.optimizers.Adam(get_lr(lr, dataset, batch_size), 0.5),
-        ), slugs[0], utils.parse_arch(slugs[1])
+            tf.keras.optimizers.Adam(lr, 0.5),
+            tf.keras.optimizers.Adam(lr, 0.5)
+        ), slugs[0], opt_params
+
+    elif strategy_name == "algo2":
+        slugs = strategy.split("/")
+        print(f"using {slugs[0]} strategy with {slugs[1]}")
+
+        opt_params = utils.parse_arch(slugs[1])
+
+        # one for encoder and decoder
+        return (
+            tf.keras.optimizers.Adam(
+                get_lr(lr, dataset, batch_size, schedule_mode=lr_schedule),
+                0.5
+            ),
+            tf.keras.optimizers.Adam(
+                get_lr(lr, dataset, batch_size, schedule_mode=lr_schedule, step_factor=opt_params["k"]),
+                0.5
+            ),
+        ), slugs[0], opt_params
 
 @tf.function
 def mean_softmax_from_logits(logits):

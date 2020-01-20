@@ -1,6 +1,9 @@
 """
 Usage:
-train.py  [--batch-size=<batch-size> --epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr> --output-dir=<output-dir> --class-loss=<class-loss> --cov-type=<cov-type>] --strategy=<strategy> --dataset=<dataset> <model>
+train.py  [--batch-size=<batch-size> --epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr>]
+    [--output-dir=<output-dir> --class-loss=<class-loss> --cov-type=<cov-type>]
+    [--lr-schedule=<schedule>]
+    (--strategy=<strategy> --dataset=<dataset>) <model>
 
 Options:
   -h --help                   Show this screen.
@@ -15,6 +18,7 @@ Options:
   --class-loss=<class-loss>   Class loss {vdb, vib} [default: vdb]
   --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
   --batch-size=<batch-size>   Batch size [default: 100]
+  --lr-schedule=<schedule>    LR Schedule [default: constant]
 """
 
 import time
@@ -23,6 +27,8 @@ import os
 import json
 import yaml
 import numpy as np
+import time
+
 from docopt import docopt
 
 import tensorflow as tf
@@ -132,7 +138,7 @@ def train_algo2(
 
 def train(
         model, dataset, epochs, batch_size, beta, M,
-        initial_lr, strategy, output_dir, class_loss, cov_type
+        initial_lr, lr_schedule, strategy, output_dir, class_loss, cov_type
     ):
 
     model_conf = model
@@ -147,12 +153,13 @@ def train(
     test_dataset = tf.data.Dataset.from_tensor_slices(test_set) \
         .shuffle(TEST_BUF).batch(batch_size)
     
-    print(f"Training with {model} on {dataset} for {epochs} epochs (lr={initial_lr})")
+    print(f"Training with {model} on {dataset} for {epochs} epochs (lr={initial_lr}, schedule={lr_schedule})")
     print(f"Params: batch-size={batch_size} beta={beta} M={M} lr={initial_lr} strategy={strategy}")
 
     optimizers, strategy_name, opt_params = losses.get_optimizer(
         strategy,
         lr,
+        lr_schedule,
         dataset,
         batch_size
     )
@@ -195,6 +202,8 @@ def train(
 
     print("Using trainstep: ", train_step)
 
+    start_time = time.time()
+
     for epoch in range(1, epochs + 1):
         start_time = time.time()
 
@@ -233,6 +242,9 @@ def train(
         test_metrics = evaluate(model, test_dataset, test_summary_writer, M, epoch)
 
         print(f"--- Time elapse for current epoch {end_time - start_time}")
+    
+    end_time = time.time()
+    elapsed_time = (end_time-start_time) / 60.
 
     summary = dict(
         dataset=dataset,
@@ -242,6 +254,7 @@ def train(
         epoch=epoch,
         M=M,
         lr=initial_lr,
+        lr_schedule=lr_labels,
         metrics=dict(
             train=dict(zip(metric_labels + acc_labels, train_metrics)),
             test=dict(zip(metric_labels + acc_labels, test_metrics)),
@@ -249,6 +262,7 @@ def train(
         class_loss=class_loss,
         cov_type=cov_type,
         batch_size=batch_size,
+        elapsed_time=elapsed_time # in minutes
     )
 
     if model.latent_dim == 2:
@@ -272,6 +286,7 @@ def train(
 
     model.save_weights(f"{artifact_dir}/model")
 
+    print(f"Training took {elapsed_time:.4f} minutes")
     print(f"Please see artifact at: {artifact_dir}")
 
 if __name__ == "__main__":
@@ -284,13 +299,14 @@ if __name__ == "__main__":
     epoch = int(arguments["--epoch"])
     M = int(arguments["-M"])
     lr = float(arguments["--lr"])
+    lr_schedule = arguments['--lr-schedule']
     output_dir = arguments['--output-dir']
     class_loss = arguments['--class-loss']
     cov_type = arguments['--cov-type']
     batch_size = int(arguments['--batch-size'])
 
     train(
-        model, dataset, epoch, batch_size, beta, M, lr,
+        model, dataset, epoch, batch_size, beta, M, lr, lr_schedule,
         strategy, output_dir,
         class_loss,
         cov_type
