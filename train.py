@@ -202,7 +202,7 @@ def train(
 
     print("Using trainstep: ", train_step)
 
-    start_time = time.time()
+    train_start_time = time.time()
 
     for epoch in range(1, epochs + 1):
         start_time = time.time()
@@ -243,8 +243,8 @@ def train(
 
         print(f"--- Time elapse for current epoch {end_time - start_time}")
     
-    end_time = time.time()
-    elapsed_time = (end_time-start_time) / 60.
+    train_end_time = time.time()
+    elapsed_time = (train_end_time - train_start_time) / 60.
 
     summary = dict(
         dataset=dataset,
