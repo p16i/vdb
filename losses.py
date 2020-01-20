@@ -20,7 +20,7 @@ def get_lr(lr, dataset, batch_size, schedule_mode="constant", step_factor=1):
             values.append(s*values[-1])
         print(values)
         return tf.keras.optimizers.schedules.PiecewiseConstantDecay(
-            (np.array([2, 120, 160, 180]) * steps_per_epoch / step_factor).tolist(),
+            (np.array([80, 120, 160, 180]) * steps_per_epoch / step_factor).tolist(),
             values
         )
     elif schedule_mode == "alemi_vib_mnist":
