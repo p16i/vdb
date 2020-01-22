@@ -254,7 +254,7 @@ def train(
         epoch=epoch,
         M=M,
         lr=initial_lr,
-        lr_schedule=lr_labels,
+        lr_schedule=lr_schedule,
         metrics=dict(
             train=dict(zip(metric_labels + acc_labels, train_metrics)),
             test=dict(zip(metric_labels + acc_labels, test_metrics)),
