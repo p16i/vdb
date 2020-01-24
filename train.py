@@ -246,6 +246,7 @@ def train(
     train_end_time = time.time()
     elapsed_time = (train_end_time - train_start_time) / 60.
 
+    test_metrics_dict = dict(zip(metric_labels + acc_labels, test_metrics))
     summary = dict(
         dataset=dataset,
         model=model_conf,
@@ -257,12 +258,13 @@ def train(
         lr_schedule=lr_schedule,
         metrics=dict(
             train=dict(zip(metric_labels + acc_labels, train_metrics)),
-            test=dict(zip(metric_labels + acc_labels, test_metrics)),
+            test=test_metrics_dict,
         ),
         class_loss=class_loss,
         cov_type=cov_type,
         batch_size=batch_size,
-        elapsed_time=elapsed_time # in minutes
+        elapsed_time=elapsed_time, # in minutes
+        test_accuracy_L12=test_metrics_dict["accuracy_L12"],
     )
 
     if model.latent_dim == 2:
