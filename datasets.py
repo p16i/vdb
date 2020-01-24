@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 
 import tensorflow as tf
@@ -51,7 +53,6 @@ def get_dataset(name, data_path="./datasets"):
         input_dims[subset_name] = input_dims[name]
         num_classes[subset_name] = num_classes[name]
 
-
         (train_images, train_labels), \
         (test_images, test_labels), \
         (selected_images, selected_labels) = get_dataset(name)
@@ -67,6 +68,24 @@ def get_dataset(name, data_path="./datasets"):
         return (train_images, train_labels), \
             (test_images, test_labels), \
             (selected_images, selected_labels)
+    elif re.match(r".+-cv\d+-\d+", name):
+        dataset_name, params = name.split("-cv")
+
+        (X, y), _, _ = get_dataset(dataset_name, data_path=data_path)
+
+        k_folds, s_ix = np.array(params.split("-")).astype(int).tolist()
+
+        train_ix = np.load(f"{data_path}/cv-index/{dataset_name}-cv{k_folds}-train.npy")[s_ix, :]
+        val_ix = np.load(f"{data_path}/cv-index/{dataset_name}-cv{k_folds}-val.npy")[s_ix, :]
+
+        # assign configuration for this pseudo dataset
+        dataset_size[name] = (train_ix.shape[0], val_ix.shape[0])
+        input_dims[name] = input_dims[dataset_name]
+        num_classes[name] = num_classes[dataset_name]
+
+        return (X[train_ix, :], y[train_ix]), \
+            (X[val_ix, :], y[val_ix]), \
+            ()
 
     ds_method = getattr(tf.keras.datasets, name)
     (train_images, train_labels), (test_images, test_labels) = ds_method.load_data()
