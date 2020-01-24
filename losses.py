@@ -38,6 +38,9 @@ def get_optimizer(strategy, lr, lr_schedule, dataset, batch_size):
     strategy_name = strategy.split("/")[0]
     if strategy_name == "oneshot":
         print("using oneshot strategy")
+
+        lr = get_lr(lr, dataset, batch_size, schedule_mode=lr_schedule)
+
         return [
             # this parameter from  https://github.com/alexalemi/vib_demo/blob/master/MNISTVIB.ipynb
             tf.keras.optimizers.Adam(lr, 0.5)
