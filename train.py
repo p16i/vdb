@@ -2,7 +2,7 @@
 Usage:
 train.py  [--batch-size=<batch-size> --epoch=<epoch> --beta=<beta> -M=<M> --lr=<lr>]
     [--output-dir=<output-dir> --class-loss=<class-loss> --cov-type=<cov-type>]
-    [--lr-schedule=<schedule>]
+    [--lr-schedule=<schedule> --augmentation]
     (--strategy=<strategy> --dataset=<dataset>) <model>
 
 Options:
@@ -19,6 +19,7 @@ Options:
   --cov-type=<cov-type>       Type of covariance {diag, full} [default: diag]
   --batch-size=<batch-size>   Batch size [default: 100]
   --lr-schedule=<schedule>    LR Schedule [default: constant]
+  --augmentation              Data Augmentation [default: False]
 """
 
 import time
@@ -73,7 +74,7 @@ def evaluate(model, test_dataset, tsb_writer, M, epoch):
 
 def train_algo1(
         model, optimizers, train_dataset, tsb_writer, M,
-        lr_labels, strategy_name, opt_params, epoch
+        lr_labels, strategy_name, opt_params, epoch, steps_per_epoch
     ):
     apply_gradient_func = getattr(losses, f"compute_apply_{strategy_name}_gradients")
 
@@ -94,12 +95,15 @@ def train_algo1(
             ]
         )
 
+        if i >= steps_per_epoch - 1:
+            break
+
     return m, am
 
 
 def train_algo2(
         model, optimizers, train_dataset, tsb_writer, M,
-        lr_labels, strategy_name, opt_params, epoch
+        lr_labels, strategy_name, opt_params, epoch, steps_per_epoch
     ):
 
     if "current_k" not in opt_params:
@@ -133,11 +137,14 @@ def train_algo2(
             ]
         )
 
+        if i >= steps_per_epoch - 1:
+            break
+
     return m, am
 
 
 def train(
-        model, dataset, epochs, batch_size, beta, M,
+        model, dataset, data_augmentation, epochs, batch_size, beta, M,
         initial_lr, lr_schedule, strategy, output_dir, class_loss, cov_type
     ):
 
@@ -147,8 +154,18 @@ def train(
 
     TRAIN_BUF, TEST_BUF = datasets.dataset_size[dataset]
 
-    train_dataset = tf.data.Dataset.from_tensor_slices(train_set) \
-        .shuffle(TRAIN_BUF).batch(batch_size)
+    if data_augmentation:
+        base_dataset = dataset.split("-")[0]
+        print(f"Using image generator params from {base_dataset}")
+        with open(f"./datasets/image-generator-config/{base_dataset}.yml", "r") as fh:
+            params = yaml.safe_load(fh)
+            print(params)
+        train_dataset = tf.keras.preprocessing.image.ImageDataGenerator(**params)
+        train_dataset.fit(train_set[0])
+
+    else:
+        train_dataset = tf.data.Dataset.from_tensor_slices(train_set) \
+            .shuffle(TRAIN_BUF).batch(batch_size)
 
     test_dataset = tf.data.Dataset.from_tensor_slices(test_set) \
         .shuffle(TEST_BUF).batch(batch_size)
@@ -204,6 +221,8 @@ def train(
 
     train_start_time = time.time()
 
+    steps_per_epoch = int(np.ceil(train_set[0].shape[0] / batch_size))
+
     for epoch in range(1, epochs + 1):
         start_time = time.time()
 
@@ -212,13 +231,14 @@ def train(
         m, am = train_step(
             model,
             optimizers,
-            train_dataset,
+            train_dataset.flow(train_set[0], train_set[1], batch_size=batch_size) if data_augmentation else train_dataset,
             train_summary_writer,
             M,
             lr_labels,
             strategy_name,
             opt_params,
-            epoch
+            epoch,
+            steps_per_epoch
         )
 
         m = m.result().numpy()
@@ -265,6 +285,7 @@ def train(
         batch_size=batch_size,
         elapsed_time=elapsed_time, # in minutes
         test_accuracy_L12=test_metrics_dict["accuracy_L12"],
+        data_augmentation=data_augmentation
     )
 
     if model.latent_dim == 2:
@@ -306,9 +327,10 @@ if __name__ == "__main__":
     class_loss = arguments['--class-loss']
     cov_type = arguments['--cov-type']
     batch_size = int(arguments['--batch-size'])
+    data_augmentation = bool(arguments["--augmentation"])
 
     train(
-        model, dataset, epoch, batch_size, beta, M, lr, lr_schedule,
+        model, dataset, data_augmentation, epoch, batch_size, beta, M, lr, lr_schedule,
         strategy, output_dir,
         class_loss,
         cov_type
