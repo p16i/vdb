@@ -15,12 +15,19 @@ def get_lr(lr, dataset, batch_size, schedule_mode="constant", step_factor=1):
         return lr
     elif schedule_mode == "keras_resnet20_cifar10":
         # ref: https://keras.io/examples/cifar10_resnet/
-        values = [1e-2]
+        values = [1e-3]
         for s in [1e-1, 1e-2, 1e-3, 0.5e-3]:
             values.append(s*values[-1])
         print(values)
         return tf.keras.optimizers.schedules.PiecewiseConstantDecay(
             (np.array([80, 120, 160, 180]) * steps_per_epoch / step_factor).tolist(),
+            values
+        )
+    elif schedule_mode == "pytorch_resnet20_cifar10":
+        # ref: https://github.com/akamaster/pytorch_resnet_cifar10/blob/master/trainer.py#L120
+        values = [1e-1, 1e-2, 1e-3]
+        return tf.keras.optimizers.schedules.PiecewiseConstantDecay(
+            (np.array([100, 150]) * steps_per_epoch / step_factor).tolist(),
             values
         )
     elif schedule_mode == "alemi_vib_mnist":
