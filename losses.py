@@ -50,7 +50,7 @@ def get_optimizer(strategy, lr, lr_schedule, dataset, batch_size):
 
         return [
             # this parameter from  https://github.com/alexalemi/vib_demo/blob/master/MNISTVIB.ipynb
-            tf.keras.optimizers.Adam(lr, 0.5)
+            tf.keras.optimizers.SGD(lr, momentum=0.9)
         ], strategy, {}
     elif strategy == "algo1":
         slugs = strategy.split("/")
