@@ -15,12 +15,10 @@ def get_lr(lr, dataset, batch_size, schedule_mode="constant", step_factor=1):
         return lr
     elif schedule_mode == "keras_resnet20_cifar10":
         # ref: https://keras.io/examples/cifar10_resnet/
-        values = [1e-3]
-        for s in [1e-1, 1e-2, 1e-3, 0.5e-3]:
-            values.append(s*values[-1])
-        print(values)
+        values = [1e-3, 1e-4, 1e-5, 1e-6, 0.5e-6]
+        steps = [80, 120, 160, 180]
         return tf.keras.optimizers.schedules.PiecewiseConstantDecay(
-            (np.array([80, 120, 160, 180]) * steps_per_epoch / step_factor).tolist(),
+            (np.array(steps) * steps_per_epoch / step_factor).tolist(),
             values
         )
     elif schedule_mode == "pytorch_resnet20_cifar10":
