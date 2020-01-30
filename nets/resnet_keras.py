@@ -48,12 +48,13 @@ def resnet_layer(inputs,
     # Returns
         x (tensor): tensor as input to the next layer
     """
-    conv = Conv2D(num_filters,
-                  kernel_size=kernel_size,
-                  strides=strides,
-                  padding='same',
-                  kernel_initializer='he_normal',
-                  kernel_regularizer=l2(1e-4))
+    conv = Conv2D(
+        num_filters,
+        kernel_size=kernel_size,
+        strides=strides,
+        padding='same',
+        kernel_initializer='he_normal',
+    )
 
     x = inputs
     if conv_first:
