@@ -6,7 +6,7 @@ from losses import compute_info_loss_diag_cov, \
     mean_softmax_from_logits
 
 class BaseNet(tf.keras.Model):
-    def __init__(self, architecture, cov_type, num_class, beta, M):
+    def __init__(self, architecture, cov_type, num_classes, beta, M):
         super(BaseNet, self).__init__()
 
         # this will be used by all architectures inheriting BaseNet
@@ -43,10 +43,12 @@ class BaseNet(tf.keras.Model):
         self.beta = beta
         self.M = M
 
+        self.num_classes = num_classes
+
         self.decoder = tf.keras.Sequential(
             [
                 tf.keras.layers.InputLayer(input_shape=(self.latent_dim,)),
-                tf.keras.layers.Dense(units=num_class),
+                tf.keras.layers.Dense(units=num_classes),
             ]
         )
     

@@ -7,24 +7,33 @@ import tensorflow as tf
 input_dims = {
     "mnist": (28, 28, 1),
     "fashion_mnist": (28, 28, 1),
-    "cifar10": (32, 32, 3)
+    "cifar10": (32, 32, 3),
+    "cifar100": (32, 32, 3)
 }
 
 num_classes = {
     "mnist": 10,
     "fashion_mnist": 10,
     "cifar10": 10,
+    "cifar100": 100, # fine labels
 }
 
 dataset_size = {
     "mnist": (60000, 10000),
     "fashion_mnist": (60000, 10000),
     "cifar10": (50000, 10000),
+    "cifar100": (50000, 10000),
 }
 
-cifar10_statistics = dict(
-    mean=(0.4914009, 0.48215896, 0.4465308),
-    std=(0.24703279, 0.24348423, 0.26158753)
+dataset_statistics = dict(
+    cifar10=dict(
+        mean=(0.4914009, 0.48215896, 0.4465308),
+        std=(0.24703279, 0.24348423, 0.26158753)
+    ),
+    cifar100=dict(
+        mean=(0.5070754, 0.48655024, 0.44091907),
+        std=(0.26733398, 0.25643876, 0.2761503)
+    )
 )
 
 def normalization_mnist(x):
@@ -33,7 +42,12 @@ def normalization_mnist(x):
 def normalization_cifar10(x):
     x = x / 255.
 
-    return (x - cifar10_statistics["mean"]) / cifar10_statistics["std"]
+    return (x - dataset_statistics["cifar10"]["mean"]) / dataset_statistics["cifar10"]["std"]
+
+def normalization_cifar100(x):
+    x = x / 255.
+
+    return (x - dataset_statistics["cifar100"]["mean"]) / dataset_statistics["cifar100"]["std"]
 
 def subset_dataset_parsing(name):
     name, subset_size = name.split("-")
@@ -108,6 +122,9 @@ def get_dataset(name, data_path="./datasets"):
         train_images = normalization_cifar10(train_images)
         test_images = normalization_cifar10(test_images)
 
+    elif name == "cifar100":
+        train_images = normalization_cifar100(train_images)
+        test_images = normalization_cifar100(test_images)
     else:
         raise SystemError(f"No normalization implemented for {name}")
 

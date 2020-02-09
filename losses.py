@@ -87,18 +87,18 @@ def get_optimizer(strategy, lr, lr_schedule, dataset, batch_size):
 
 @tf.function
 def mean_softmax_from_logits(logits):
-    # logit's shape: (M, batch_size, 10)
+    # logit's shape: (M, batch_size, num_classes)
 
-    # shape: (M, batch_size, 10)
+    # shape: (M, batch_size, num_classes)
     sm = tf.nn.softmax(logits - tf.reduce_max(logits, 2, keepdims=True))
 
-    # shape: (batch_size, 10)
+    # shape: (batch_size, num_classes)
     return tf.reduce_mean(sm, 0)
 
 @tf.function
-def compute_vib_class_loss(logits, y):
-    # shape: (batch_size, 10)
-    one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
+def compute_vib_class_loss(logits, y, num_classes):
+    # shape: (batch_size, num_classes)
+    one_hot = tf.one_hot(y, depth=num_classes, dtype=tf.float64)
 
     class_loss_float64 = tf.reduce_mean( # average across all samples in batch
         - tf.reduce_sum(
@@ -110,9 +110,9 @@ def compute_vib_class_loss(logits, y):
     return class_loss_float64
 
 @tf.function
-def compute_vdb_class_loss(logits, y):
-    # shape: (batch_size, 10)
-    one_hot = tf.one_hot(y, depth=10, dtype=tf.float64)
+def compute_vdb_class_loss(logits, y, num_classes):
+    # shape: (batch_size, num_classes)
+    one_hot = tf.one_hot(y, depth=num_classes, dtype=tf.float64)
 
     mean_sm = mean_softmax_from_logits(logits)
 
@@ -149,12 +149,12 @@ def compute_info_loss_full_cov(q_zgx, prior):
 
 @tf.function
 def compute_loss(model, x, y, M, training=False):
-    # shape: (batch_size, 10)
+    # shape: (batch_size, num_classes)
     (mu, cov_entries), logits = model(x, L=M, training=training)
 
     q_zgx = model._build_z_dist(mu, cov_entries)
 
-    class_loss = model.class_loss(logits, y)
+    class_loss = model.class_loss(logits, y, model.num_classes)
     info_loss = model.info_loss(q_zgx, model.prior)
 
     IZY_bound = math.log(10, 2) - class_loss
@@ -230,12 +230,12 @@ def compute_apply_gradients_algo2_enc(model, variables, batch, optimizer, M, tra
 def compute_apply_gradients_algo2_dec(model, variables, batch, optimizer, M, training=False):
     return compute_apply_gradients_variables(model, variables, batch, optimizer, M, training=training)
 
-def compute_vdb_class_loss_tf1(logits, y):
+def compute_vdb_class_loss_tf1(logits, y, num_classes):
     # this is only for testing purposes.
-    # logits's size = (M, Batch, 10)
-    # y's size = (10,)
+    # logits's size = (M, Batch, num_classes)
+    # y's size = (num_classes,)
 
-    one_hot_labels = tf.one_hot(y, depth=10, dtype=tf.float64)
+    one_hot_labels = tf.one_hot(y, depth=num_classes, dtype=tf.float64)
 
     return tf.reduce_mean(
         -tf.reduce_sum(
