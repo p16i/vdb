@@ -1,3 +1,10 @@
 *.pyc
 artifacts*
 venv
+notebooks/.ipynb_checkpoints/*
+notebooks/figures/*
+
+datasets/mnist_c/*
+datasets/CIFAR-10-C/*
+
+.vscode/*
