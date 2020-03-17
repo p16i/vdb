@@ -12,6 +12,7 @@ class Net(BaseNet):
         self.encoder = tf.keras.Sequential(
             [
                 DenseNet121(input_shape=in_shape, weights=None, include_top=False),
+                tf.keras.layers.Lambda(tf.squeeze),
                 tf.keras.layers.Dense(self.parameters_for_latent),
             ]
         )
