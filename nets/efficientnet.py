@@ -2,7 +2,7 @@ import tensorflow as tf
 
 from nets.base import BaseNet
 
-from efficientnet.tfkeras import EfficientNetB0
+from efficientnet import tfkeras
 
 class Net(BaseNet):
     """
@@ -14,7 +14,8 @@ class Net(BaseNet):
 
         self.encoder = tf.keras.Sequential(
             [
-                EfficientNetB0(
+
+                getattr(tfkeras, "EfficientNetB%d" % architecture["b"])(
                     input_shape=in_shape,
                     weights=None,
                     include_top=False,
