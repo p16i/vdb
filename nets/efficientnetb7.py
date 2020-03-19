@@ -4,10 +4,6 @@ from nets.base import BaseNet
 
 from efficientnet.tfkeras import EfficientNetB7
 
-output_size = {
-    (32, 32, 3): (2560,)
-}
-
 class Net(BaseNet):
     """
     Please see resnet20.py for more information about the implementation
@@ -18,8 +14,12 @@ class Net(BaseNet):
 
         self.encoder = tf.keras.Sequential(
             [
-                EfficientNetB7(input_shape=in_shape, weights=None, include_top=False),
-                tf.keras.layers.Reshape(output_size[in_shape]),
+                EfficientNetB7(
+                    input_shape=in_shape,
+                    weights=None,
+                    include_top=False,
+                    pooling="avg"
+                ),
                 tf.keras.layers.Dense(self.parameters_for_latent),
             ]
         )
