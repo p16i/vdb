@@ -1,0 +1,15 @@
+\begin{tabular}{lrr}
+\toprule
+{} &    mCe &  rel_mCe \\
+key                              &        &          \\
+\midrule
+resnet20-algo2/k:10-vdb-diag-M1  &  97.22 &    97.76 \\
+resnet20-algo2/k:10-vdb-diag-M12 & 103.26 &   103.77 \\
+resnet20-algo2/k:10-vdb-diag-M6  &  97.68 &    98.01 \\
+resnet20-oneshot-vdb-diag-M1     & 100.00 &   100.00 \\
+resnet20-oneshot-vdb-diag-M12    &  98.10 &    98.47 \\
+resnet20-oneshot-vdb-diag-M6     &  97.58 &    98.07 \\
+resnet20-oneshot-vib-diag-M12    &  96.24 &    96.54 \\
+resnet20-oneshot-vib-diag-M6     &  93.52 &    93.96 \\
+\bottomrule
+\end{tabular}

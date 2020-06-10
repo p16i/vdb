@@ -62,6 +62,8 @@ class ResNet(tf.keras.Model):
         out = tf.nn.avg_pool2d(out, out.shape[1], strides=1, padding="VALID")
       
         out = tf.reshape(out, (tf.shape(out)[0],  -1))
+
+        print(out.shape)
         
         out = self.fcout(out)
         return out
