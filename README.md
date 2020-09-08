@@ -1,5 +1,9 @@
 # Variation Deficiency Bottleneck
 
+```
+(Unofficial) implemenation of Banerjee and Montúfar (2020), Variational Deficiency Bottleneck, IJCNN 2020
+```
+
 ## Dependencies
 Please run `pip install -r requirements.txt` for installing all depedencies.
 
